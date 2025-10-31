@@ -1,0 +1,11 @@
+.snakemake
+*.gz
+*.out
+*.sh
+examples*
+logs
+logs_slurm
+resources*
+workflow*
+results*
+*__pycache__*
