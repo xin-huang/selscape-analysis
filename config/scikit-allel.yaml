@@ -23,7 +23,7 @@ delta_moving_step_size_ratios: [1]
 
 # Statistical thresholds
 # Top proportion for candidate identification
-top_proportion: 0.05
+top_proportion: 0.005
 
 # Manhattan plot settings 
 manhattan_plot_width: 640
