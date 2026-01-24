@@ -42,6 +42,14 @@ STATISTICS = {
     "betascan_b1": {
         "genes": "results/balancing_selection/betascan/{species}/{ppl}/m_0.15/{ppl}.hg38.m_0.15.b1.top_0.0005.outlier.genes",
         "candidates": "results/balancing_selection/betascan/{species}/{ppl}/m_0.15/{ppl}.hg38.m_0.15.b1.top_0.0005.annotated.outliers"
+    },
+    "moving_tajima_d_bal": {
+        "genes": "results/balancing_selection/scikit-allel/{species}/moving_tajima_d/{ppl}/100_1/{ppl}.moving_tajima_d.top_0.05.outlier.genes",
+        "candidates": "results/balancing_selection/scikit-allel/{species}/moving_tajima_d/{ppl}/100_1/{ppl}.moving_tajima_d.top_0.05.annotated.outliers"
+    },
+    "windowed_tajima_d_bal": {
+        "genes": "results/balancing_selection/scikit-allel/{species}/windowed_tajima_d/{ppl}/100000_1/{ppl}.windowed_tajima_d.top_0.05.outlier.genes",
+        "candidates": "results/balancing_selection/scikit-allel/{species}/windowed_tajima_d/{ppl}/100000_1/{ppl}.windowed_tajima_d.top_0.05.annotated.outliers"
     }
 }
 
@@ -75,7 +83,9 @@ rule make_circos_plot:
         nsl_bed="results/plots/circos/{ppl}/genes/nsl.genes.bed",
         mtjd_bed="results/plots/circos/{ppl}/genes/moving_tajima_d.genes.bed",
         wtjd_bed="results/plots/circos/{ppl}/genes/windowed_tajima_d.genes.bed",
-        b1_bed="results/plots/circos/{ppl}/genes/betascan_b1.genes.bed"
+        b1_bed="results/plots/circos/{ppl}/genes/betascan_b1.genes.bed",
+        mtjd_bal_bed="results/plots/circos/{ppl}/genes/moving_tajima_d_bal.genes.bed",
+        wtjd_bal_bed="results/plots/circos/{ppl}/genes/windowed_tajima_d_bal.genes.bed"
     output:
         plot="results/plots/circos/{ppl}/{ppl}_circos.svg"
     params:

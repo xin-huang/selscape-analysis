@@ -43,6 +43,8 @@ nsl_df = load_bed_without_sex_chr(snakemake.input.nsl_bed)
 mtjd_df = load_bed_without_sex_chr(snakemake.input.mtjd_bed)
 wtjd_df = load_bed_without_sex_chr(snakemake.input.wtjd_bed)
 b1_df = load_bed_without_sex_chr(snakemake.input.b1_bed)
+mtjd_bal_df = load_bed_without_sex_chr(snakemake.input.mtjd_bal_bed)
+wtjd_bal_df = load_bed_without_sex_chr(snakemake.input.wtjd_bal_bed)
 
 # Initialize circos sectors from chromosome BED
 chr_bed_file, cytoband_file, _ = load_eukaryote_example_dataset("hg38")
@@ -70,9 +72,11 @@ circos.add_cytoband_tracks((81, 85), cytoband_file)
 track_configs = [
     ("iHS", ihs_df, (61, 75), "#1f77b4"),                    # Blue
     ("nSL", nsl_df, (48, 61), "#ff7f0e"),                    # Orange
-    ("Moving Tajima's D", mtjd_df, (35, 48), "#2ca02c"),     # Green
-    ("Windowed Tajima's D", wtjd_df, (22, 35), "#d62728"),   # Red
+    ("Moving Tajima's D (−)", mtjd_df, (35, 48), "#2ca02c"),     # Green
+    ("Windowed Tajima's D (−)", wtjd_df, (22, 35), "#d62728"),   # Red
     ("B1", b1_df, (9, 22), "#9467bd"),                       # Purple
+    ("Moving Tajima's D (+)", mtjd_bal_df, (17, 27), "#8c564b"), # Brown
+    ("Windowed Tajima's D (+)", wtjd_bal_df, (7, 17), "#e377c2"),  # Pink
 ]
 
 # Plot tracks
@@ -106,9 +110,11 @@ fig = circos.plotfig()
 legend_elements = [
     mpatches.Patch(color="#1f77b4", label=f"iHS (n={ihs_df['gene'].nunique()})"),
     mpatches.Patch(color="#ff7f0e", label=f"nSL (n={nsl_df['gene'].nunique()})"),
-    mpatches.Patch(color="#2ca02c", label=f"Moving Tajima's D (n={mtjd_df['gene'].nunique()})"),
-    mpatches.Patch(color="#d62728", label=f"Windowed Tajima's D (n={wtjd_df['gene'].nunique()})"),
+    mpatches.Patch(color="#2ca02c", label=f"Moving Tajima's D (−) (n={mtjd_df['gene'].nunique()})"),
+    mpatches.Patch(color="#d62728", label=f"Windowed Tajima's D (−) (n={wtjd_df['gene'].nunique()})"),
     mpatches.Patch(color="#9467bd", label=f"B1 (n={b1_df['gene'].nunique()})"),
+    mpatches.Patch(color="#8c564b", label=f"Moving Tajima's D (+) (n={mtjd_bal_df['gene'].nunique()})"),
+    mpatches.Patch(color="#e377c2", label=f"Windowed Tajima's D (+) (n={wtjd_bal_df['gene'].nunique()})"),
 ]
 
 # Position legend outside the plot area
