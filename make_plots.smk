@@ -53,9 +53,10 @@ STATISTICS = {
     }
 }
 
-rule all_circos_plots:
+rule all_visualization:
     input:
-        expand("results/plots/circos/{ppl}/{ppl}_circos.svg", ppl=POPULATIONS)
+        expand("results/plots/circos/{ppl}/{ppl}_circos.svg", ppl=POPULATIONS),
+        "results/plots/dfe/Human.two_epoch.lognormal.dfe_params.svg"
 
 rule extract_gene_regions:
     input:
@@ -96,3 +97,33 @@ rule make_circos_plot:
         "env.yaml"
     script:
         "scripts/plot_circos_diagram.py"
+
+
+
+
+rule merge_dfe_confidence_intervals:
+    input:
+        ci_files=expand("results/dadi/{{species}}/dfe/{ppl}/StatDFE/{ppl}.hg38.two_epoch.lognormal.godambe.ci", ppl=POPULATIONS),
+        tsv_files=expand("results/dadi/{{species}}/dfe/{ppl}/StatDFE/{ppl}.hg38.two_epoch.lognormal.godambe.ci.tsv", ppl=POPULATIONS)
+    output:
+        merged="results/plots/dfe/{species}.two_epoch.lognormal.dfe_params.tsv"
+    params:
+        populations=POPULATIONS
+    log:
+        "logs/plots/dfe/merge_dfe_confidence_intervals.{species}.log"
+    conda:
+        "env.yaml"
+    script:
+        "scripts/merge_dfe_ci.py"
+
+rule plot_dfe_confidence_intervals:
+    input:
+        data=rules.merge_dfe_confidence_intervals.output.merged
+    output:
+        plot="results/plots/dfe/{species}.two_epoch.lognormal.dfe_params.svg"
+    log:
+        "logs/plots/dfe/plot_dfe_confidence_intervals.{species}.log"
+    conda:
+        "env.yaml"
+    script:
+        "scripts/plot_dfe_params.py"
