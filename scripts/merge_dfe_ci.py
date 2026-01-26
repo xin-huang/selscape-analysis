@@ -22,8 +22,8 @@ import re
 
 # get input files from Snakemake
 populations = snakemake.params.populations
+bestfit_files = snakemake.input.bestfit_files
 ci_files = snakemake.input.ci_files
-tsv_files = snakemake.input.tsv_files
 output_file = snakemake.output.merged
 
 # parse .godambe.ci file to extract lower and upper bounds
@@ -51,18 +51,24 @@ def parse_ci_file(ci_file):
     
     return lower_bounds, upper_bounds
 
-# parse .godambe.ci.tsv file to get point estimates
-# resturns last row (most refined)
-def parse_tsv_file(tsv_file):
-    df = pd.read_csv(tsv_file, sep=r'\s+')
-    last_row = df.iloc[-1]
-    return last_row['log_mu'], last_row['log_sigma'], last_row['misid']
+def parse_bestfit_file(bestfit_file):
+    with open(bestfit_file, 'r') as f:
+        for line in f:
+            if line.startswith('# Converged results'):
+                # Skip header line with column names
+                next(f)
+                # Read first converged result (best fit)
+                data_line = next(f)
+                values = data_line.strip().split()
+                # Return: log_mu (param1), log_sigma (param2), misid
+                return float(values[1]), float(values[2]), float(values[3])
+    return None, None, None
 
 data = []
 
-for pop, ci_file, tsv_file in zip(populations, ci_files, tsv_files):
+for pop, bestfit_file, ci_file in zip(populations, bestfit_files, ci_files):
+    log_mu, log_sigma, misid = parse_bestfit_file(bestfit_file)
     lower_bounds, upper_bounds = parse_ci_file(ci_file)
-    log_mu, log_sigma, misid = parse_tsv_file(tsv_file)
     # store all parameters: point estimates + lower/upper bounds    
     data.append({
         'Pop': pop,

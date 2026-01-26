@@ -103,8 +103,8 @@ rule make_circos_plot:
 
 rule merge_dfe_confidence_intervals:
     input:
+        bestfit_files=expand("results/dadi/{{species}}/dfe/{ppl}/InferDFE/{ppl}.hg38.two_epoch.lognormal.InferDFE.bestfits", ppl=POPULATIONS),
         ci_files=expand("results/dadi/{{species}}/dfe/{ppl}/StatDFE/{ppl}.hg38.two_epoch.lognormal.godambe.ci", ppl=POPULATIONS),
-        tsv_files=expand("results/dadi/{{species}}/dfe/{ppl}/StatDFE/{ppl}.hg38.two_epoch.lognormal.godambe.ci.tsv", ppl=POPULATIONS)
     output:
         merged="results/plots/dfe/{species}.two_epoch.lognormal.dfe_params.tsv"
     params:
@@ -115,6 +115,7 @@ rule merge_dfe_confidence_intervals:
         "env.yaml"
     script:
         "scripts/merge_dfe_ci.py"
+
 
 rule plot_dfe_confidence_intervals:
     input:
