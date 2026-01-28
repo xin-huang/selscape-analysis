@@ -24,8 +24,8 @@ from pycirclize import Circos
 from pycirclize.utils import load_eukaryote_example_dataset
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import os
 
-# Function to load and filter BED data
 def load_bed_without_sex_chr(bed_file):
     """Load BED file and remove sex chromosomes"""
     df = pd.read_csv(bed_file, sep="\t", header=None, dtype={0: str})
@@ -33,18 +33,77 @@ def load_bed_without_sex_chr(bed_file):
     df["chr"] = df["chr"].astype(str).str.strip()
     df["start"] = df["start"].astype(int)
     df["end"] = df["end"].astype(int)
-    # Remove sex chromosomes
     df = df[~df["chr"].isin(["chrX", "chrY"])]
     return df
 
-# Read gene BED files from each statistic
-ihs_df = load_bed_without_sex_chr(snakemake.input.ihs_bed)
-nsl_df = load_bed_without_sex_chr(snakemake.input.nsl_bed)
-mtjd_df = load_bed_without_sex_chr(snakemake.input.mtjd_bed)
-wtjd_df = load_bed_without_sex_chr(snakemake.input.wtjd_bed)
-b1_df = load_bed_without_sex_chr(snakemake.input.b1_bed)
-mtjd_bal_df = load_bed_without_sex_chr(snakemake.input.mtjd_bal_bed)
-wtjd_bal_df = load_bed_without_sex_chr(snakemake.input.wtjd_bal_bed)
+# Track configurations for different plot types
+TRACK_CONFIGS = {
+    "positive_selection": [
+        {
+            "name": "iHS",
+            "bed_input": "ihs_bed",
+            "r_range": (61, 75),
+            "color": "#1f77b4"  # Blue
+        },
+        {
+            "name": "nSL",
+            "bed_input": "nsl_bed",
+            "r_range": (48, 61),
+            "color": "#ff7f0e"  # Orange
+        },
+        {
+            "name": "Moving Tajima's D (−)",
+            "bed_input": "mtjd_bed",
+            "r_range": (35, 48),
+            "color": "#2ca02c"  # Green
+        },
+        {
+            "name": "Windowed Tajima's D (−)",
+            "bed_input": "wtjd_bed",
+            "r_range": (22, 35),
+            "color": "#d62728"  # Red
+        }
+    ],
+    "balancing_selection": [
+        {
+            "name": "B1",
+            "bed_input": "b1_bed",
+            "r_range": (48, 75),
+            "color": "#1f77b4"  # Blue
+        },
+        {
+            "name": "Moving Tajima's D (+)",
+            "bed_input": "mtjd_bal_bed",
+            "r_range": (35, 48),
+            "color": "#2ca02c"  # Green
+        },
+        {
+            "name": "Windowed Tajima's D (+)",
+            "bed_input": "wtjd_bal_bed",
+            "r_range": (22, 35),
+            "color": "#d62728"  # Red
+        }
+    ]
+}
+
+# Get parameters
+population = snakemake.params.population
+plot_type = snakemake.params.plot_type
+
+# Get track configuration for this plot type
+track_specs = TRACK_CONFIGS[plot_type]
+
+# Load data and build track configs
+track_configs = []
+for spec in track_specs:
+    bed_file = getattr(snakemake.input, spec["bed_input"])
+    df = load_bed_without_sex_chr(bed_file)
+    track_configs.append((
+        spec["name"],
+        df,
+        spec["r_range"],
+        spec["color"]
+    ))
 
 # Initialize circos sectors from chromosome BED
 chr_bed_file, cytoband_file, _ = load_eukaryote_example_dataset("hg38")
@@ -55,10 +114,9 @@ autosomes = [f"chr{i}" for i in range(1, 23)]
 chr_bed_df = chr_bed_df[chr_bed_df[0].isin(autosomes)]
 
 # Create temporary filtered file
-import os
 temp_dir = os.path.dirname(snakemake.output.plot)
 os.makedirs(temp_dir, exist_ok=True)
-filtered_chr_bed = os.path.join(temp_dir, f"{snakemake.params.population}_chr_filtered.bed")
+filtered_chr_bed = os.path.join(temp_dir, f"{population}_{plot_type}_chr_filtered.bed")
 chr_bed_df.to_csv(filtered_chr_bed, sep="\t", header=False, index=False)
 
 # Initialize circos with filtered chromosomes
@@ -66,18 +124,6 @@ circos = Circos.initialize_from_bed(filtered_chr_bed, space=2)
 
 # Add cytoband tracks
 circos.add_cytoband_tracks((81, 85), cytoband_file)
-
-# Track positions (inner to outer) - each track represents one statistic
-# 5 tracks now: positive selection (iHS, nSL, 2x Tajima's D) + balancing selection (B1)
-track_configs = [
-    ("iHS", ihs_df, (61, 75), "#1f77b4"),                    # Blue
-    ("nSL", nsl_df, (48, 61), "#ff7f0e"),                    # Orange
-    ("Moving Tajima's D (−)", mtjd_df, (35, 48), "#2ca02c"),     # Green
-    ("Windowed Tajima's D (−)", wtjd_df, (22, 35), "#d62728"),   # Red
-    ("B1", b1_df, (9, 22), "#9467bd"),                       # Purple
-    ("Moving Tajima's D (+)", mtjd_bal_df, (17, 27), "#8c564b"), # Brown
-    ("Windowed Tajima's D (+)", wtjd_bal_df, (7, 17), "#e377c2"),  # Pink
-]
 
 # Plot tracks
 for sector in circos.sectors:
@@ -98,24 +144,19 @@ for sector in circos.sectors:
         for s, e in zip(sub["start"].to_numpy(), sub["end"].to_numpy()):
             gene_track.rect(float(s), float(e), fc=color, ec="none", lw=1)
 
-# Add population name as title
-population = snakemake.params.population
-title = f"{population}"
-circos.text(title, size=10, r=0)
+# Add only population name as title
+circos.text(population, size=12, r=0, weight="bold")
 
 # Create figure and add legend
 fig = circos.plotfig()
 
 # Create legend with unique gene counts
-legend_elements = [
-    mpatches.Patch(color="#1f77b4", label=f"iHS (n={ihs_df['gene'].nunique()})"),
-    mpatches.Patch(color="#ff7f0e", label=f"nSL (n={nsl_df['gene'].nunique()})"),
-    mpatches.Patch(color="#2ca02c", label=f"Moving Tajima's D (−) (n={mtjd_df['gene'].nunique()})"),
-    mpatches.Patch(color="#d62728", label=f"Windowed Tajima's D (−) (n={wtjd_df['gene'].nunique()})"),
-    mpatches.Patch(color="#9467bd", label=f"B1 (n={b1_df['gene'].nunique()})"),
-    mpatches.Patch(color="#8c564b", label=f"Moving Tajima's D (+) (n={mtjd_bal_df['gene'].nunique()})"),
-    mpatches.Patch(color="#e377c2", label=f"Windowed Tajima's D (+) (n={wtjd_bal_df['gene'].nunique()})"),
-]
+legend_elements = []
+for stat_name, df, _, color in track_configs:
+    legend_elements.append(
+        mpatches.Patch(color=color, label=f"{stat_name}")
+#        mpatches.Patch(color=color, label=f"{name} (n={len(df)})
+    )
 
 # Position legend outside the plot area
 legend = fig.legend(
