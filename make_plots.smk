@@ -70,8 +70,29 @@ rule merge_dfe_confidence_intervals:
 
 rule plot_dfe_confidence_intervals:
     input:
-        data=rules.merge_dfe_confidence_intervals.output.merged
+        data=rules.merge_dfe_confidence_intervals.output.merged,
     output:
-        plot="results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.png"
+        plot="results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.svg",
+    params:
+        sorter=[
+            'ACB', 'ASW', 'ESN', 'GWD', 'LWK', 'MSL', 'YRI',
+            'CLM', 'MXL', 'PEL', 'PUR',
+            'CDX', 'CHB', 'CHS', 'JPT', 'KHV',
+            'CEU', 'FIN', 'GBR', 'IBS', 'TSI',
+            'BEB', 'GIH', 'ITU', 'PJL', 'STU',
+        ],
+        colors=(
+            ['black'] * 7 +
+            ['green'] * 4 +
+            ['gold']  * 5 +
+            ['blue']  * 5 +
+            ['brown'] * 5
+        ),
+        legend=[
+            ('AFR', 'black'), ('AMR', 'green'), ('EAS', 'gold'),
+            ('EUR', 'blue'),  ('SAS', 'brown'),
+        ],
+        mu_ylim=[-1, 7],
+        sigma_ylim=[0, 40],
     script:
         "scripts/plot_dfe_params.py"
