@@ -96,5 +96,5 @@ for study_file in sorted(study_dir.rglob("*.list")):
         for gene in study_genes
     ]
 
-    out_name = study_file.stem.replace(".candidate.genes", "") + f".{sel_type}.overlap.tsv"
+    out_name = study_file.stem.replace(".candidate.genes", "") + f".{sel_type}_selection.overlap.tsv"
     pd.DataFrame(rows).to_csv(outdir / out_name, sep="\t", index=False)

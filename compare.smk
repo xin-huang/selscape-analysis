@@ -21,48 +21,33 @@
 rule all:
     input:
         expand(
-            "results/plots/dfe/{species}.two_epoch.lognormal.dfe_params.combined.svg",
-            species=config["species"],
+            "results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.combined.svg",
+            species=config["species"]
         ),
         expand(
             "results/comparison/{species}/outlier_gene_overlap/", 
             species=config["species"]
         )
 
-# DFE comparison
-rule plot_dfe_apes:
+rule combine_dfe_params:
     input:
-        data="resources/ape_dfe_params.tsv",
+        human="results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.tsv",
+        apes="resources/ape_dfe_params.tsv",
     output:
-        plot="results/plots/dfe/{species}.two_epoch.lognormal.dfe_params.apes.svg",
-    params:
-        sorter=['PPA', 'PTE', 'PTS', 'PTT', 'PTV', 'GBB', 'GBG', 'GGG', 'PA', 'PP'],
-        colors=(
-            ['gold'] * 5 +
-            ['blue'] * 3 +
-            ['red'] * 2
-        ),
-        legend=[
-            ('Pan',     'gold'),
-            ('Gorilla', 'blue'),
-            ('Pongo',   'red'),
-        ],
-        mu_ylim=[-6, 13],
-        sigma_ylim=[-10, 30],
+        combined="results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.combined.tsv",
     script:
-        "scripts/plot_dfe_params.py"
+        "scripts/combine_dfe_params.py"
 
 
-rule combine_dfe_plots:
+rule plot_dfe_combined:
     input:
-        human="results/plots/dfe/{species}.two_epoch.lognormal.dfe_params.svg",
-        apes=rules.plot_dfe_apes.output.plot,
+        data=rules.combine_dfe_params.output.combined,
     output:
-        combined="results/plots/dfe/{species}.two_epoch.lognormal.dfe_params.combined.svg",
+        plot="results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.combined.svg",
     script:
-        "scripts/combine_dfe_plots.py"
+        "scripts/plot_dfe_params_combined.py"
 
-# outlier comparison
+
 rule compare_outlier_genes:
     input:
         ihs=expand("results/positive_selection/selscan/{{species}}/1pop/{ppl}/ihs_0.05/{ppl}.normalized.ihs.maf_0.05.top_0.0005.outlier.genes", ppl=config["populations"]),

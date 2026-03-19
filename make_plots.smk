@@ -22,7 +22,7 @@ rule all_visualization:
     input:
         expand("results/plots/circos/{species}/{ppl}/{ppl}_positive_selection_circos_scores.png", species=config["species"], ppl=config["populations"]),
         expand("results/plots/circos/{species}/{ppl}/{ppl}_balancing_selection_circos_scores.png", species=config["species"], ppl=config["populations"]),
-        expand("results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.png", species=config["species"])
+        expand("results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.svg", species=config["species"])
 
 
 rule make_positive_selection_circos_scores:
