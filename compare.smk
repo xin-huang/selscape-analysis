@@ -23,6 +23,10 @@ rule all:
         expand(
             "results/plots/dfe/{species}.two_epoch.lognormal.dfe_params.combined.svg",
             species=config["species"],
+        ),
+        expand(
+            "results/comparison/{species}/outlier_gene_overlap/", 
+            species=config["species"]
         )
 
 # DFE comparison
@@ -57,3 +61,19 @@ rule combine_dfe_plots:
         combined="results/plots/dfe/{species}.two_epoch.lognormal.dfe_params.combined.svg",
     script:
         "scripts/combine_dfe_plots.py"
+
+# outlier comparison
+rule compare_outlier_genes:
+    input:
+        ihs=expand("results/positive_selection/selscan/{{species}}/1pop/{ppl}/ihs_0.05/{ppl}.normalized.ihs.maf_0.05.top_0.0005.outlier.genes", ppl=config["populations"]),
+        nsl=expand("results/positive_selection/selscan/{{species}}/1pop/{ppl}/nsl_0.05/{ppl}.normalized.nsl.maf_0.05.top_0.0005.outlier.genes", ppl=config["populations"]),
+        mtjd_pos=expand("results/positive_selection/scikit-allel/{{species}}/1pop/{ppl}/moving_tajima_d/100_1/{ppl}.moving_tajima_d.top_0.05.outlier.genes", ppl=config["populations"]),
+        wtjd_pos=expand("results/positive_selection/scikit-allel/{{species}}/1pop/{ppl}/windowed_tajima_d/100000_1/{ppl}.windowed_tajima_d.top_0.05.outlier.genes", ppl=config["populations"]),
+        betascan=expand("results/balancing_selection/betascan/{{species}}/{ppl}/m_0.15/{ppl}.hg38.m_0.15.b1.top_0.0005.outlier.genes", ppl=config["populations"]),
+        mtjd_bal=expand("results/balancing_selection/scikit-allel/{{species}}/moving_tajima_d/{ppl}/100_1/{ppl}.moving_tajima_d.top_0.05.outlier.genes", ppl=config["populations"]),
+        wtjd_bal=expand("results/balancing_selection/scikit-allel/{{species}}/windowed_tajima_d/{ppl}/100000_1/{ppl}.windowed_tajima_d.top_0.05.outlier.genes", ppl=config["populations"]),
+        study_dir="resources/candidates",
+    output:
+        outdir=directory("results/comparison/{species}/outlier_gene_overlap/"),
+    script:
+        "scripts/compare_outlier_genes.py"
