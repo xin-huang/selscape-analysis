@@ -74,7 +74,7 @@ def plot_param(ax, param, ylim):
     ax.set_xticks(x, sorter, rotation=90)
 
 plot_param(axs[0, 0], "mu",    [-6, 13])
-plot_param(axs[1, 0], "sigma", [-10, 40])
+plot_param(axs[1, 0], "sigma", [0, 40])
 axs[0, 0].set_ylabel('$\\mu$')
 axs[1, 0].set_ylabel('$\\sigma$')
 
