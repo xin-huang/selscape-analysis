@@ -1,0 +1,53 @@
+species: "Pongo"
+tax_id: 9600
+
+dataset: "greatape_pongo"
+ref_genome: "hg38"
+anc_alleles:
+  path: "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38"
+  prefix: "homo_sapiens_ancestor"
+
+genome_annotation: "resources/data/Human/annotation/Human.hg38.gtf.gz"
+gene2go: "resources/data/Human/annotation/gene2go.gz"
+
+hwe_pvalue: 0.001
+
+rmsk: "resources/data/Human/repeats/hg38.rmsk.autosomes.bed"
+seg_dup: "resources/data/Human/repeats/hg38.seg.dups.autosomes.bed"
+sim_rep: "resources/data/Human/repeats/hg38.simple.repeats.autosomes.bed"
+
+ploidy: 2
+
+populations:
+  - PP
+  - PA
+  
+data_folder: "examples/data/greatape/Pongo"
+vcf_prefix: ""
+vcf_suffix: ".filteranno.vcf.gz"
+
+metadata: "examples/data/greatape/metadata.txt"
+
+chromosomes:
+  - chr1
+  - chr2
+  - chr3
+  - chr4
+  - chr5
+  - chr6
+  - chr7
+  - chr8
+  - chr9
+  - chr10
+  - chr11
+  - chr12
+  - chr13
+  - chr14
+  - chr15
+  - chr16
+  - chr17
+  - chr18
+  - chr19
+  - chr20
+  - chr21
+  - chr22

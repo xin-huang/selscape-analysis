@@ -1,0 +1,77 @@
+species: "Human"
+tax_id: 9606
+
+dataset: "1kg_low_hg38"
+ref_genome: "hg38"
+anc_alleles:
+  path: "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38"
+  prefix: "homo_sapiens_ancestor"
+
+genome_annotation: "resources/data/Human/annotation/Human.hg38.gtf.gz"
+gene2go: "resources/data/Human/annotation/gene2go.gz"
+
+hwe_pvalue: 0.001
+
+rmsk: "resources/data/Human/repeats/hg38.rmsk.autosomes.bed"
+seg_dup: "resources/data/Human/repeats/hg38.seg.dups.autosomes.bed"
+sim_rep: "resources/data/Human/repeats/hg38.simple.repeats.autosomes.bed"
+
+ploidy: 2
+
+populations:
+  - ACB
+  - ASW
+  - BEB
+  - CDX
+  - CEU
+  - CHB
+  - CHS
+  - CLM
+  - ESN
+  - FIN
+  - GBR
+  - GIH
+  - GWD
+  - IBS
+  - ITU
+  - JPT
+  - KHV
+  - LWK
+  - MSL
+  - MXL
+  - PEL
+  - PJL
+  - PUR
+  - STU
+  - TSI
+  - YRI
+
+data_folder: "resources/data/Human/1KG_low_cov"
+vcf_prefix: ""
+vcf_suffix: ".vcf.gz"
+
+metadata: "resources/data/Human/1KG_low_cov/samples.txt"
+
+chromosomes:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+  - 16
+  - 17
+  - 18
+  - 19
+  - 20
+  - 21
+  - 22
