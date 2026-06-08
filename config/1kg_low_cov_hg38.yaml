@@ -6,6 +6,7 @@ ref_genome: "hg38"
 anc_alleles:
   path: "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38"
   prefix: "homo_sapiens_ancestor"
+  chr_prefix: "chr"
 
 genome_annotation: "resources/data/Human/annotation/Human.hg38.gtf.gz"
 gene2go: "resources/data/Human/annotation/gene2go.gz"

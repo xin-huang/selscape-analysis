@@ -22,11 +22,11 @@ populations:
   - PP
   - PA
   
-data_folder: "examples/data/greatape/Pongo"
+data_folder: "resources/data/greatape/Pongo"
 vcf_prefix: ""
 vcf_suffix: ".filteranno.vcf.gz"
 
-metadata: "examples/data/greatape/metadata.txt"
+metadata: "resources/data/greatape/metadata.txt"
 
 chromosomes:
   - chr1

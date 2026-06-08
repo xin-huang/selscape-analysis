@@ -25,11 +25,11 @@ populations:
   - PTV
   - PTT
 
-data_folder: "examples/data/greatape/Pan"
+data_folder: "resources/data/greatape/Pan"
 vcf_prefix: ""
 vcf_suffix: ".filteranno.vcf.gz"
 
-metadata: "examples/data/greatape/metadata.txt"
+metadata: "resources/data/greatape/metadata.txt"
 
 chromosomes:
   - chr1

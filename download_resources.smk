@@ -42,9 +42,9 @@ rule download_resources:
         "resources/data/Human/repeats/hg19.seg.dups.autosomes.bed",
         "resources/data/Human/repeats/hg19.simple.repeats.autosomes.bed",
         # Great ape
-        expand("resources/data/greatape/Gorilla/{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
-        expand("resources/data/greatape/Pan/{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
-        expand("resources/data/greatape/Pongo/{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
+        expand("resources/data/greatape/Gorilla/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
+        expand("resources/data/greatape/Pan/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
+        expand("resources/data/greatape/Pongo/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
         "resources/data/greatape/metadata.txt",
 
 
@@ -300,8 +300,8 @@ rule convert_hg19_repeat_files:
 
 rule download_greatape_vcf:
     output:
-        vcf="resources/data/greatape/{species}/{i}.filteranno.vcf.gz",
-        idx="resources/data/greatape/{species}/{i}.filteranno.vcf.gz.tbi",
+        vcf="resources/data/greatape/{species}/chr{i}.filteranno.vcf.gz",
+        idx="resources/data/greatape/{species}/chr{i}.filteranno.vcf.gz.tbi",
     shell:
         """
         wget -c https://phaidra.univie.ac.at/pfsa/o_2066302/merged_segregating/{wildcards.species}/{wildcards.species}_all_filtered/chr{wildcards.i}.filteranno.vcf.gz -O {output.vcf}

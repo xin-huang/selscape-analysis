@@ -23,11 +23,11 @@ populations:
   - GBG
   - GGG
 
-data_folder: "examples/data/greatape/Gorilla"
+data_folder: "resources/data/greatape/Gorilla"
 vcf_prefix: ""
 vcf_suffix: ".filteranno.vcf.gz"
 
-metadata: "examples/data/greatape/metadata.txt"
+metadata: "resources/data/greatape/metadata.txt"
 
 chromosomes:
   - chr1
