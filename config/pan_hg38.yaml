@@ -1,7 +1,7 @@
 species: "Pan"
 tax_id: 9598
 
-dataset: "greatape_pan"
+dataset: "pan"
 ref_genome: "hg38"
 anc_alleles:
   path: "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38"

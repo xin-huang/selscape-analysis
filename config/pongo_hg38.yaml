@@ -1,7 +1,7 @@
 species: "Pongo"
 tax_id: 9600
 
-dataset: "greatape_pongo"
+dataset: "pongo"
 ref_genome: "hg38"
 anc_alleles:
   path: "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38"
