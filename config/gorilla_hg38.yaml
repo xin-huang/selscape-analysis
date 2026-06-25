@@ -4,8 +4,8 @@ tax_id: 9593
 dataset: "gorilla"
 ref_genome: "hg38"
 anc_alleles:
-  path: "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38"
-  prefix: "homo_sapiens_ancestor"
+  path: "resources/data/greatape/rhemac10_anc_alleles"
+  prefix: "hg38"
 
 genome_annotation: "resources/data/Human/annotation/Human.hg38.gtf.gz"
 gene2go: "resources/data/Human/annotation/gene2go.gz"

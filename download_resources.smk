@@ -46,7 +46,10 @@ rule download_resources:
         expand("resources/data/greatape/Pan/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
         expand("resources/data/greatape/Pongo/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
         "resources/data/greatape/metadata.txt",
-
+        expand("resources/data/greatape/rhemac10_anc_alleles/hg38.chr{i}.bed.gz", i=np.arange(1, 23)),
+        "resources/data/refgenomes/hg38.fa",
+        "resources/data/refgenomes/rheMac10.fa",
+        "resources/data/refgenomes/hg38ToRheMac10.over.chain",
 
 rule download_selscape:
     output:
@@ -327,4 +330,48 @@ rule create_greatape_metadata:
         """
         grep -v captive {input.metadata} | awk 'NR>1 {{print $4"\t"$2}}' > {output.metadata}
         sed -i '1iSample\tPopulation' {output.metadata}
+        """
+
+
+rule download_greatape_reference_genomes:
+    output:
+        hg38="resources/data/refgenomes/hg38.fa",
+        rheMac10="resources/data/refgenomes/rheMac10.fa",
+        chain="resources/data/refgenomes/hg38ToRheMac10.over.chain",
+    params:
+        dir="resources/data/refgenomes",
+    shell:
+        """
+        wget -c https://hgdownload.soe.ucsc.edu/goldenpath/hg38/bigZips/hg38.fa.gz -O {params.dir}/hg38.fa.gz
+        gzip -d {params.dir}/hg38.fa.gz
+        wget -c https://hgdownload.soe.ucsc.edu/goldenPath/rheMac10/bigZips/rheMac10.fa.gz -O {params.dir}/rheMac10.fa.gz
+        gzip -d {params.dir}/rheMac10.fa.gz
+        wget -c https://hgdownload.soe.ucsc.edu/goldenPath/hg38/liftOver/hg38ToRheMac10.over.chain.gz -O {params.dir}/hg38ToRheMac10.over.chain.gz
+        gzip -d {params.dir}/hg38ToRheMac10.over.chain.gz
+        """
+
+
+rule extract_anc_info_greatape:
+    input:
+        hg38=rules.download_greatape_reference_genomes.output.hg38,
+        rheMac10=rules.download_greatape_reference_genomes.output.rheMac10,
+        chain=rules.download_greatape_reference_genomes.output.chain,
+    output:
+        anc_alleles="resources/data/greatape/rhemac10_anc_alleles/hg38.chr{i}.bed.gz",
+        index="resources/data/greatape/rhemac10_anc_alleles/hg38.chr{i}.bed.gz.tbi",
+    params:
+        out="resources/data/greatape/rhemac10_anc_alleles/hg38.chr{i}.bed",
+    resources:
+        mem_mb=128000,
+    shell:
+        """
+        python scripts/get_ancestral_info.py \
+            --src-fasta {input.hg38} \
+            --tgt-fasta {input.rheMac10} \
+            --liftover-chain {input.chain} \
+            --chr-name chr{wildcards.i} \
+            --output {params.out}
+        bgzip -c {params.out} > {output.anc_alleles}
+        tabix -p bed {output.anc_alleles}
+        rm {params.out}
         """
