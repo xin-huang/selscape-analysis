@@ -41,6 +41,9 @@ rule download_resources:
         "resources/data/Human/repeats/hg19.rmsk.autosomes.bed",
         "resources/data/Human/repeats/hg19.seg.dups.autosomes.bed",
         "resources/data/Human/repeats/hg19.simple.repeats.autosomes.bed",
+        # 1KG low cov (hg38)
+        expand("resources/data/Human/1KG_low_cov_hg38/chr{i}.vcf.gz", i=np.arange(1, 23)),
+        "resources/data/Human/1KG_low_cov_hg38/samples.txt",
         # Great ape
         expand("resources/data/greatape/Gorilla/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
         expand("resources/data/greatape/Pan/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
@@ -298,6 +301,28 @@ rule convert_hg19_repeat_files:
         zcat {input.simrep} | awk 'BEGIN{{OFS="\t"}}$2!~/chr(X|Y|Un|M|[0-9]_|[0-9][0-9]_)/{{print $2,$3,$4,$5,$11}}' | sed 's/^chr//' | sort -k1,1n -k2,2n -k3,3n > {output.simrep}
         """
 
+# 1kg low cov hg38
+
+rule download_1KG_low_cov_hg38_vcf:
+    output:
+        vcf="resources/data/Human/1KG_low_cov_hg38/chr{i}.vcf.gz",
+        idx="resources/data/Human/1KG_low_cov_hg38/chr{i}.vcf.gz.tbi",
+    shell:
+        """
+        wget -c https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/release/20190312_biallelic_SNV_and_INDEL/ALL.chr{wildcards.i}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz -O {output.vcf}
+        wget -c https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/release/20190312_biallelic_SNV_and_INDEL/ALL.chr{wildcards.i}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz.tbi -O {output.idx}
+        """
+
+
+rule create_1KG_low_cov_hg38_metadata:
+    input:
+        panel=rules.download_1KG_info.output.panel,
+    output:
+        samples="resources/data/Human/1KG_low_cov_hg38/samples.txt",
+    shell:
+        r"""
+        sed '1d' {input.panel} | awk '{{print $1"\t"$2}}' | sed '1iSample\tPopulation' > {output.samples}
+        """
 
 # great ape
 
