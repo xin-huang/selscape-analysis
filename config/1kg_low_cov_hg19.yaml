@@ -46,11 +46,11 @@ populations:
   - TSI
   - YRI
 
-data_folder: "resources/data/Human/1KG_low_cov"
+data_folder: "resources/data/Human/1KG_low_cov_hg19"
 vcf_prefix: ""
 vcf_suffix: ".vcf.gz"
 
-metadata: "resources/data/Human/1KG_low_cov/samples.txt"
+metadata: "resources/data/Human/1KG_low_cov_hg19/samples.txt"
 
 chromosomes:
   - 1

@@ -46,11 +46,11 @@ populations:
   - TSI
   - YRI
 
-data_folder: "resources/data/Human/1KG_high_cov"
+data_folder: "resources/data/Human/1KG_high_cov_hg38"
 vcf_prefix: "full_"
 vcf_suffix: ".vcf.gz"
 
-metadata: "resources/data/Human/1KG_high_cov/samples.txt"
+metadata: "resources/data/Human/1KG_high_cov_hg38/samples.txt"
 
 chromosomes:
   - chr1

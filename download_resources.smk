@@ -25,34 +25,56 @@ rule download_resources:
     input:
         directory("resources/tools/selscape"),
         # 1KG high cov (hg38)
-        expand("resources/data/Human/1KG_high_cov/full_chr{i}.vcf.gz", i=np.arange(1, 23)),
-        expand("resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38/homo_sapiens_ancestor.chr{i}.bed.gz", i=np.arange(1, 23)),
-        "resources/data/Human/1KG_high_cov/samples.txt",
+        expand(
+            "resources/data/Human/1KG_high_cov_hg38/full_chr{i}.vcf.gz", i=np.arange(1, 23)
+        ),
+        expand(
+            "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38/homo_sapiens_ancestor.chr{i}.bed.gz",
+            i=np.arange(1, 23),
+        ),
+        "resources/data/Human/1KG_high_cov_hg38/samples.txt",
         "resources/data/Human/annotation/Human.hg38.gtf.gz",
         "resources/data/Human/annotation/gene2go.gz",
         "resources/data/Human/repeats/hg38.rmsk.autosomes.bed",
         "resources/data/Human/repeats/hg38.seg.dups.autosomes.bed",
         "resources/data/Human/repeats/hg38.simple.repeats.autosomes.bed",
         # 1KG low cov (hg19)
-        expand("resources/data/Human/1KG_low_cov/{i}.vcf.gz", i=np.arange(1, 23)),
-        expand("resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh37/homo_sapiens_ancestor.{i}.bed.gz", i=np.arange(1, 23)),
-        "resources/data/Human/1KG_low_cov/samples.txt",
+        expand("resources/data/Human/1KG_low_cov_hg19/{i}.vcf.gz", i=np.arange(1, 23)),
+        expand(
+            "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh37/homo_sapiens_ancestor.{i}.bed.gz",
+            i=np.arange(1, 23),
+        ),
+        "resources/data/Human/1KG_low_cov_hg19/samples.txt",
         "resources/data/Human/annotation/Human.hg19.gtf.gz",
         "resources/data/Human/repeats/hg19.rmsk.autosomes.bed",
         "resources/data/Human/repeats/hg19.seg.dups.autosomes.bed",
         "resources/data/Human/repeats/hg19.simple.repeats.autosomes.bed",
         # 1KG low cov (hg38)
-        expand("resources/data/Human/1KG_low_cov_hg38/chr{i}.vcf.gz", i=np.arange(1, 23)),
+        expand(
+            "resources/data/Human/1KG_low_cov_hg38/chr{i}.vcf.gz", i=np.arange(1, 23)
+        ),
         "resources/data/Human/1KG_low_cov_hg38/samples.txt",
         # Great ape
-        expand("resources/data/greatape/Gorilla/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
-        expand("resources/data/greatape/Pan/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
-        expand("resources/data/greatape/Pongo/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)),
+        expand(
+            "resources/data/greatape/Gorilla/chr{i}.filteranno.vcf.gz",
+            i=np.arange(1, 23),
+        ),
+        expand(
+            "resources/data/greatape/Pan/chr{i}.filteranno.vcf.gz", i=np.arange(1, 23)
+        ),
+        expand(
+            "resources/data/greatape/Pongo/chr{i}.filteranno.vcf.gz",
+            i=np.arange(1, 23),
+        ),
         "resources/data/greatape/metadata.txt",
-        expand("resources/data/greatape/rhemac10_anc_alleles/hg38.chr{i}.bed.gz", i=np.arange(1, 23)),
-        "resources/data/refgenomes/hg38.fa",
-        "resources/data/refgenomes/rheMac10.fa",
-        "resources/data/refgenomes/hg38ToRheMac10.over.chain",
+        expand(
+            "resources/data/greatape/rhemac10_anc_alleles/hg38.chr{i}.bed.gz",
+            i=np.arange(1, 23),
+        ),
+        "resources/data/greatape/refgenomes/hg38.fa",
+        "resources/data/greatape/refgenomes/rheMac10.fa",
+        "resources/data/greatape/refgenomes/hg38ToRheMac10.over.chain",
+
 
 rule download_selscape:
     output:
@@ -69,10 +91,11 @@ rule download_selscape:
 
 # 1kg high cov
 
+
 rule download_1KG_high_cov_vcf:
     output:
-        vcf="resources/data/Human/1KG_high_cov/full_chr{i}.vcf.gz",
-        idx="resources/data/Human/1KG_high_cov/full_chr{i}.vcf.gz.tbi",
+        vcf="resources/data/Human/1KG_high_cov_hg38/full_chr{i}.vcf.gz",
+        idx="resources/data/Human/1KG_high_cov_hg38/full_chr{i}.vcf.gz.tbi",
     shell:
         """
         wget -c https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20190425_NYGC_GATK/CCDG_13607_B01_GRM_WGS_2019-02-19_chr{wildcards.i}.recalibrated_variants.vcf.gz -O {output.vcf}
@@ -93,7 +116,7 @@ rule create_1KG_high_cov_metadata:
     input:
         panel=rules.download_1KG_info.output.panel,
     output:
-        samples="resources/data/Human/1KG_high_cov/samples.txt",
+        samples="resources/data/Human/1KG_high_cov_hg38/samples.txt",
     shell:
         r"""
         sed '1d' {input.panel} | awk '{{print $1"\t"$2}}' | sed '1iSample\tPopulation' > {output.samples}
@@ -113,7 +136,9 @@ rule download_ncbi_annotation_hg38:
 
 rule download_ensembl_ancestral_alleles_hg38:
     output:
-        anc_alleles=temp("resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz"),
+        anc_alleles=temp(
+            "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz"
+        ),
     shell:
         """
         wget -c https://ftp.ensembl.org/pub/release-115/fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz -O {output.anc_alleles}
@@ -126,7 +151,9 @@ rule extract_anc_info_hg38:
     input:
         anc_alleles=rules.download_ensembl_ancestral_alleles_hg38.output.anc_alleles,
     output:
-        bed=temp("resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38/homo_sapiens_ancestor.chr{i}.bed"),
+        bed=temp(
+            "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38/homo_sapiens_ancestor.chr{i}.bed"
+        ),
     params:
         fasta="resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38/homo_sapiens_ancestor_{i}.fa",
     run:
@@ -192,10 +219,11 @@ rule convert_hg38_repeat_files:
 
 # 1kg low cov
 
+
 rule download_1KG_low_cov_vcf:
     output:
-        vcf="resources/data/Human/1KG_low_cov/{i}.vcf.gz",
-        idx="resources/data/Human/1KG_low_cov/{i}.vcf.gz.tbi",
+        vcf="resources/data/Human/1KG_low_cov_hg19/{i}.vcf.gz",
+        idx="resources/data/Human/1KG_low_cov_hg19/{i}.vcf.gz.tbi",
     shell:
         """
         wget -c https://ftp.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr{wildcards.i}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz -O {output.vcf}
@@ -207,7 +235,7 @@ rule create_1KG_low_cov_metadata:
     input:
         panel=rules.download_1KG_info.output.panel,
     output:
-        samples="resources/data/Human/1KG_low_cov/samples.txt",
+        samples="resources/data/Human/1KG_low_cov_hg19/samples.txt",
     shell:
         r"""
         sed '1d' {input.panel} | awk '{{print $1"\t"$2}}' | sed '1iSample\tPopulation' > {output.samples}
@@ -225,7 +253,9 @@ rule download_ncbi_annotation_hg19:
 
 rule download_ensembl_ancestral_alleles_hg19:
     output:
-        anc_alleles=temp("resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh37_e71.tar.bz2"),
+        anc_alleles=temp(
+            "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh37_e71.tar.bz2"
+        ),
     shell:
         """
         wget -c https://ftp.ensembl.org/pub/release-75/fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh37_e71.tar.bz2 -O {output.anc_alleles}
@@ -238,7 +268,9 @@ rule extract_anc_info_hg19:
     input:
         anc_alleles=rules.download_ensembl_ancestral_alleles_hg19.output.anc_alleles,
     output:
-        bed=temp("resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh37/homo_sapiens_ancestor.{i}.bed"),
+        bed=temp(
+            "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh37/homo_sapiens_ancestor.{i}.bed"
+        ),
     params:
         fasta="resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh37_e71/homo_sapiens_ancestor_{i}.fa",
     run:
@@ -301,7 +333,9 @@ rule convert_hg19_repeat_files:
         zcat {input.simrep} | awk 'BEGIN{{OFS="\t"}}$2!~/chr(X|Y|Un|M|[0-9]_|[0-9][0-9]_)/{{print $2,$3,$4,$5,$11}}' | sed 's/^chr//' | sort -k1,1n -k2,2n -k3,3n > {output.simrep}
         """
 
+
 # 1kg low cov hg38
+
 
 rule download_1KG_low_cov_hg38_vcf:
     output:
@@ -324,7 +358,9 @@ rule create_1KG_low_cov_hg38_metadata:
         sed '1d' {input.panel} | awk '{{print $1"\t"$2}}' | sed '1iSample\tPopulation' > {output.samples}
         """
 
+
 # great ape
+
 
 rule download_greatape_vcf:
     output:
@@ -360,11 +396,11 @@ rule create_greatape_metadata:
 
 rule download_greatape_reference_genomes:
     output:
-        hg38="resources/data/refgenomes/hg38.fa",
-        rheMac10="resources/data/refgenomes/rheMac10.fa",
-        chain="resources/data/refgenomes/hg38ToRheMac10.over.chain",
+        hg38="resources/data/greatape/refgenomes/hg38.fa",
+        rheMac10="resources/data/greatape/refgenomes/rheMac10.fa",
+        chain="resources/data/greatape/refgenomes/hg38ToRheMac10.over.chain",
     params:
-        dir="resources/data/refgenomes",
+        dir="resources/data/greatape/refgenomes",
     shell:
         """
         wget -c https://hgdownload.soe.ucsc.edu/goldenpath/hg38/bigZips/hg38.fa.gz -O {params.dir}/hg38.fa.gz
