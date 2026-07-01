@@ -53,6 +53,10 @@ rule download_resources:
         expand(
             "resources/data/Human/1KG_low_cov_hg38/chr{i}.vcf.gz", i=np.arange(1, 23)
         ),
+        expand(
+            "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38_bare/homo_sapiens_ancestor.{i}.bed.gz",
+            i=np.arange(1, 23),
+        ),        
         "resources/data/Human/1KG_low_cov_hg38/samples.txt",
         # Great ape
         expand(
@@ -74,6 +78,11 @@ rule download_resources:
         "resources/data/greatape/refgenomes/hg38.fa",
         "resources/data/greatape/refgenomes/rheMac10.fa",
         "resources/data/greatape/refgenomes/hg38ToRheMac10.over.chain",
+        # circos plots
+        "resources/data/Human/genome/hg38.chrom.sizes.bed",
+        "resources/data/Human/genome/hg38.cytoBand.txt.gz",
+        "resources/data/Human/genome/hg19.chrom.sizes.bed",
+        "resources/data/Human/genome/hg19.cytoBand.txt.gz",
 
 
 rule download_selscape:
@@ -217,7 +226,7 @@ rule convert_hg38_repeat_files:
         """
 
 
-# 1kg low cov
+# 1kg low cov hg19
 
 
 rule download_1KG_low_cov_vcf:
@@ -358,9 +367,46 @@ rule create_1KG_low_cov_hg38_metadata:
         sed '1d' {input.panel} | awk '{{print $1"\t"$2}}' | sed '1iSample\tPopulation' > {output.samples}
         """
 
+rule extract_anc_info_hg38_bare:
+    input:
+        anc_alleles=rules.download_ensembl_ancestral_alleles_hg38.output.anc_alleles,
+    output:
+        bed=temp(
+            "resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38_bare/homo_sapiens_ancestor.{i}.bed"
+        ),
+    params:
+        fasta="resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38/homo_sapiens_ancestor_{i}.fa",
+    run:
+        import pysam
+        import re
+
+        fasta = pysam.FastaFile(params.fasta)
+        with open(output.bed, "wt") as out:
+            for raw_chrom in fasta.references:
+                match = re.search(r"GRCh\d+:(\d+|X|Y)", raw_chrom)
+                if not match:
+                    print(f"Skipping unrecognized chromosome name: {raw_chrom}")
+                    continue
+                chrom = match.group(1)
+                seq = fasta.fetch(raw_chrom).upper()
+                for pos, base in enumerate(seq):
+                    if base in "ACGT":
+                        out.write(f"{chrom}\t{pos}\t{pos+1}\t{base}\n")
+        fasta.close()
+
+
+rule compress_anc_info_hg38_bare:
+    input:
+        bed=rules.extract_anc_info_hg38_bare.output.bed,
+    output:
+        bed="resources/data/Human/ancestral_alleles/homo_sapiens_ancestor_GRCh38_bare/homo_sapiens_ancestor.{i}.bed.gz",
+    shell:
+        """
+        bgzip -c {input.bed} > {output.bed}
+        tabix -p bed {output.bed}
+        """
 
 # great ape
-
 
 rule download_greatape_vcf:
     output:
@@ -435,4 +481,49 @@ rule extract_anc_info_greatape:
         bgzip -c {params.out} > {output.anc_alleles}
         tabix -p bed {output.anc_alleles}
         rm {params.out}
+        """
+
+# circos plots
+
+rule download_hg38_genome_files:
+    output:
+        chrom_sizes=temp("resources/data/Human/genome/hg38.chrom.sizes"),
+        cytoband="resources/data/Human/genome/hg38.cytoBand.txt.gz",
+    shell:
+        """
+        wget -c https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes -O {output.chrom_sizes}
+        wget -c https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/cytoBand.txt.gz -O {output.cytoband}
+        """
+
+
+rule convert_hg38_chrom_sizes_to_bed:
+    input:
+        chrom_sizes="resources/data/Human/genome/hg38.chrom.sizes",
+    output:
+        bed="resources/data/Human/genome/hg38.chrom.sizes.bed",
+    shell:
+        r"""
+        awk 'BEGIN{{OFS="\t"}}{{print $1, 0, $2}}' {input.chrom_sizes} > {output.bed}
+        """
+
+
+rule download_hg19_genome_files:
+    output:
+        chrom_sizes=temp("resources/data/Human/genome/hg19.chrom.sizes"),
+        cytoband="resources/data/Human/genome/hg19.cytoBand.txt.gz",
+    shell:
+        """
+        wget -c https://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes -O {output.chrom_sizes}
+        wget -c https://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/cytoBand.txt.gz -O {output.cytoband}
+        """
+
+
+rule convert_hg19_chrom_sizes_to_bed:
+    input:
+        chrom_sizes="resources/data/Human/genome/hg19.chrom.sizes",
+    output:
+        bed="resources/data/Human/genome/hg19.chrom.sizes.bed",
+    shell:
+        r"""
+        awk 'BEGIN{{OFS="\t"}}{{print $1, 0, $2}}' {input.chrom_sizes} > {output.bed}
         """
