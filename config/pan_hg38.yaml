@@ -54,3 +54,6 @@ chromosomes:
   - chr20
   - chr21
   - chr22
+
+chr_bed: "resources/data/Human/genome/hg38.chrom.sizes.bed"
+cytoband: "resources/data/Human/genome/hg38.cytoBand.txt.gz"
