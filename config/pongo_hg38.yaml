@@ -1,5 +1,5 @@
 species: "Pongo"
-tax_id: 9600
+tax_id: 9606
 
 dataset: "pongo"
 ref_genome: "hg38"
