@@ -17,48 +17,96 @@
 #
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
+configfile: "config/compare.yaml"
 
-rule all:
-    input:
-        expand(
-            "results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.combined.svg",
-            species=config["species"]
-        ),
-        expand(
-            "results/comparison/{species}/outlier_gene_overlap/", 
-            species=config["species"]
-        )
+COMPARISONS = config.get("comparisons", [])
+TOP_N = config.get("top_n", 20)
 
-rule combine_dfe_params:
+P_ADJUSTED_THRESHOLDS = config.get("p_adjusted_threshold", [None])
+if not isinstance(P_ADJUSTED_THRESHOLDS, list):
+    P_ADJUSTED_THRESHOLDS = [P_ADJUSTED_THRESHOLDS]
+
+
+def _thr_label(t):
+    return "none" if t is None else str(t)
+
+
+def _thr_value(label):
+    return None if label == "none" else float(label)
+
+
+POPULATIONS = [
+    "ACB", "ASW", "BEB", "CDX", "CEU", "CHB", "CHS", "CLM", "ESN", "FIN",
+    "GBR", "GIH", "GWD", "IBS", "ITU", "JPT", "KHV", "LWK", "MSL", "MXL",
+    "PEL", "PJL", "PUR", "STU", "TSI", "YRI",
+]
+
+
+rule all_comparisons:
     input:
-        human="results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.tsv",
-        apes="resources/ape_dfe_params.tsv",
+        [f"results/comparisons/{a}_vs_{b}/positive_selection/thr_{_thr_label(t)}"
+         for a, b in COMPARISONS for t in P_ADJUSTED_THRESHOLDS],
+        [f"results/comparisons/{a}_vs_{b}/balancing_selection/thr_{_thr_label(t)}"
+         for a, b in COMPARISONS for t in P_ADJUSTED_THRESHOLDS],
+        "results/comparison/1kg_high_hg38/outlier_gene_overlap/",
+
+rule compare_positive_selection:
     output:
-        combined="results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.combined.tsv",
+        directory("results/comparisons/{dataset_a}_vs_{dataset_b}/positive_selection/thr_{threshold}"),
+    params:
+        top_n=TOP_N,
+        p_adjusted_threshold=lambda wc: _thr_value(wc.threshold),
+    log:
+        "logs/comparison/compare_positive_selection.{dataset_a}_vs_{dataset_b}.thr_{threshold}.log",
     script:
-        "scripts/combine_dfe_params.py"
+        "scripts/compare_positive_selection.py"
 
 
-rule plot_dfe_combined:
-    input:
-        data=rules.combine_dfe_params.output.combined,
+rule compare_balancing_selection:
     output:
-        plot="results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.combined.svg",
+        directory("results/comparisons/{dataset_a}_vs_{dataset_b}/balancing_selection/thr_{threshold}"),
+    params:
+        top_n=TOP_N,
+        p_adjusted_threshold=lambda wc: _thr_value(wc.threshold),
+    log:
+        "logs/comparison/compare_balancing_selection.{dataset_a}_vs_{dataset_b}.thr_{threshold}.log",
     script:
-        "scripts/plot_dfe_params_combined.py"
+        "scripts/compare_balancing_selection.py"
+
 
 
 rule compare_outlier_genes:
     input:
-        ihs=expand("results/positive_selection/selscan/{{species}}/1pop/{ppl}/ihs_0.05/{ppl}.normalized.ihs.maf_0.05.top_0.0005.outlier.genes", ppl=config["populations"]),
-        nsl=expand("results/positive_selection/selscan/{{species}}/1pop/{ppl}/nsl_0.05/{ppl}.normalized.nsl.maf_0.05.top_0.0005.outlier.genes", ppl=config["populations"]),
-        mtjd_pos=expand("results/positive_selection/scikit-allel/{{species}}/1pop/{ppl}/moving_tajima_d/100_1/{ppl}.moving_tajima_d.top_0.05.outlier.genes", ppl=config["populations"]),
-        wtjd_pos=expand("results/positive_selection/scikit-allel/{{species}}/1pop/{ppl}/windowed_tajima_d/100000_1/{ppl}.windowed_tajima_d.top_0.05.outlier.genes", ppl=config["populations"]),
-        betascan=expand("results/balancing_selection/betascan/{{species}}/{ppl}/m_0.15/{ppl}.hg38.m_0.15.b1.top_0.0005.outlier.genes", ppl=config["populations"]),
-        mtjd_bal=expand("results/balancing_selection/scikit-allel/{{species}}/moving_tajima_d/{ppl}/100_1/{ppl}.moving_tajima_d.top_0.05.outlier.genes", ppl=config["populations"]),
-        wtjd_bal=expand("results/balancing_selection/scikit-allel/{{species}}/windowed_tajima_d/{ppl}/100000_1/{ppl}.windowed_tajima_d.top_0.05.outlier.genes", ppl=config["populations"]),
+        ihs=expand(
+            "results/positive_selection/selscan/Human/1kg_high_hg38/1pop/{ppl}/ihs_0.05/{ppl}.normalized.ihs.maf_0.05.top_0.0005.outlier.genes",
+            ppl=POPULATIONS,
+        ),
+        nsl=expand(
+            "results/positive_selection/selscan/Human/1kg_high_hg38/1pop/{ppl}/nsl_0.05/{ppl}.normalized.nsl.maf_0.05.top_0.0005.outlier.genes",
+            ppl=POPULATIONS,
+        ),
+        mtjd_pos=expand(
+            "results/positive_selection/scikit-allel/Human/1kg_high_hg38/1pop/{ppl}/moving_tajima_d/100_1/{ppl}.moving_tajima_d.top_0.0005.outlier.genes",
+            ppl=POPULATIONS,
+        ),
+        wtjd_pos=expand(
+            "results/positive_selection/scikit-allel/Human/1kg_high_hg38/1pop/{ppl}/windowed_tajima_d/100000_1/{ppl}.windowed_tajima_d.top_0.0005.outlier.genes",
+            ppl=POPULATIONS,
+        ),
+        betascan=expand(
+            "results/balancing_selection/betascan/Human/1kg_high_hg38/{ppl}/m_0.15/{ppl}.hg38.m_0.15.b1.top_0.0005.outlier.genes",
+            ppl=POPULATIONS,
+        ),
+        mtjd_bal=expand(
+            "results/balancing_selection/scikit-allel/Human/1kg_high_hg38/moving_tajima_d/{ppl}/100_1/{ppl}.moving_tajima_d.top_0.0005.outlier.genes",
+            ppl=POPULATIONS,
+        ),
+        wtjd_bal=expand(
+            "results/balancing_selection/scikit-allel/Human/1kg_high_hg38/windowed_tajima_d/{ppl}/100000_1/{ppl}.windowed_tajima_d.top_0.0005.outlier.genes",
+            ppl=POPULATIONS,
+        ),
         study_dir="resources/candidates",
     output:
-        outdir=directory("results/comparison/{species}/outlier_gene_overlap/"),
+        outdir=directory("results/comparison/1kg_high_hg38/outlier_gene_overlap/"),
     script:
         "scripts/compare_outlier_genes.py"

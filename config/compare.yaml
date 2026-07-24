@@ -1,0 +1,10 @@
+top_n: 20
+
+p_adjusted_threshold: [null, 0.05]
+ 
+comparisons:
+  - [1kg_low_hg38, 1kg_low_hg19]
+  - [1kg_high_hg38, 1kg_low_hg38]
+  - [1kg_high_hg38, gorilla]
+  - [1kg_high_hg38, pan]
+  - [1kg_high_hg38, pongo]
