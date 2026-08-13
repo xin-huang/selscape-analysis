@@ -19,77 +19,68 @@
 
 
 import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.cm as cm
 import pandas as pd
-matplotlib.use("Agg")
 
 df = pd.read_csv(snakemake.input.data, sep="\t")
+populations = snakemake.params.populations
+population_groups = snakemake.params.population_groups
+mu_ylim = snakemake.params.mu_ylim
+sigma_ylim = snakemake.params.sigma_ylim
 
-human_sorter = [
-    'ACB', 'ASW', 'ESN', 'GWD', 'LWK', 'MSL', 'YRI',
-    'CLM', 'MXL', 'PEL', 'PUR',
-    'CDX', 'CHB', 'CHS', 'JPT', 'KHV',
-    'CEU', 'FIN', 'GBR', 'IBS', 'TSI',
-    'BEB', 'GIH', 'ITU', 'PJL', 'STU',
-]
-ape_sorter = ['PPA', 'PTE', 'PTS', 'PTT', 'PTV', 'GBB', 'GBG', 'GGG', 'PA', 'PP']
-sorter = human_sorter + ape_sorter
+pop_colors = []
+pop_labels = []
+for pop in populations:
+    label = next((lbl for lbl, grp in population_groups.items() if pop in grp["populations"]), pop)
+    color = next((grp["color"] for grp in population_groups.values() if pop in grp["populations"]), None)
+    pop_labels.append(label)
+    pop_colors.append(color)
 
-human_colors = (
-    ['black'] * 7 +
-    ['green'] * 4 +
-    ['gold']  * 5 +
-    ['blue']  * 5 +
-    ['brown'] * 5
-)
-ape_colors = (
-    ['#FF7F00'] * 5 +
-    ['#9B59B6'] * 3 +
-    ['#E91E63'] * 2
-)
-colors = human_colors + ape_colors
+n = len(populations)
+auto_colors = [cm.tab20(i / n) for i in range(n)]
+colors = [c if c is not None else auto_colors[i] for i, c in enumerate(pop_colors)]
 
-df = df.sort_values(
-    by="Pop", key=lambda col: col.map(lambda p: sorter.index(p))
-).reset_index(drop=True)
+x = list(range(len(populations)))
+x_tick_labels = list(df["Pop"])
 
 fig, axs = plt.subplots(nrows=2, ncols=2, constrained_layout=True, figsize=(10, 4), dpi=350)
 gridspec = axs[0, 0].get_subplotspec().get_gridspec()
 for a in axs[:, 1]:
     a.remove()
 
+
 def plot_param(ax, param, ylim):
     lb, ub = f"{param}_lb", f"{param}_ub"
-    x = list(range(len(sorter)))
     ax.scatter(x, df[param].values, color=colors, zorder=2)
-    ax.scatter(x, df[lb].values, marker='_', color='grey')
-    ax.scatter(x, df[ub].values, marker='_', color='grey')
-    for i in range(len(sorter)):
-        ax.plot([i, i], [df[param].values[i], df[ub].values[i]],
-                linestyle='dashed', color='grey', zorder=1)
-        ax.plot([i, i], [df[lb].values[i], df[param].values[i]],
-                linestyle='dashed', color='grey', zorder=1)
-    ax.set_ylim(ylim)
-    ax.set_xticks(x, sorter, rotation=90)
+    ax.scatter(x, df[lb].values, marker="_", color="grey")
+    ax.scatter(x, df[ub].values, marker="_", color="grey")
+    for i in range(len(populations)):
+        ax.plot([i, i], [df[param].values[i], df[ub].values[i]], linestyle="dashed", color="grey", zorder=1)
+        ax.plot([i, i], [df[lb].values[i], df[param].values[i]], linestyle="dashed", color="grey", zorder=1)
+    if param == "sigma":
+        current = ax.get_ylim()
+        ax.set_ylim(bottom=0, top=current[1])
+    if ylim is not None:
+        ax.set_ylim(ylim[0], ylim[1])
+    ax.set_xticks(x, x_tick_labels, rotation=90)
 
-plot_param(axs[0, 0], "mu",    [-6, 13])
-plot_param(axs[1, 0], "sigma", [0, 40])
-axs[0, 0].set_ylabel('$\\mu$')
-axs[1, 0].set_ylabel('$\\sigma$')
+
+plot_param(axs[0, 0], "mu", mu_ylim)
+plot_param(axs[1, 0], "sigma", sigma_ylim)
+axs[0, 0].set_ylabel(r"$\mu$")
+axs[1, 0].set_ylabel(r"$\sigma$")
 
 subfig = fig.add_subfigure(gridspec[:, 1])
-handles = [
-    mpatches.Patch(color=color, label=label)
-    for label, color in [
-        ('AFR', 'black'), ('AMR', 'green'), ('EAS', 'gold'),
-        ('EUR', 'blue'),  ('SAS', 'brown'),
-        ('Pan', '#FF7F00'), ('Gorilla', '#9B59B6'), ('Pongo', '#E91E63'),
-    ]
-]
-subfig.legend(handles=handles, fontsize=8, handlelength=1.5, loc='upper left')
+seen = {}
+for label, color in zip(pop_labels, colors):
+    if label not in seen:
+        seen[label] = color
+handles = [mpatches.Patch(color=color, label=label) for label, color in seen.items()]
+subfig.legend(handles=handles, fontsize=8, handlelength=1.5, loc="upper left")
 
-fig.set_constrained_layout_pads(w_pad=4/72, h_pad=4/72, hspace=0, wspace=0.1)
-plt.savefig(snakemake.output.plot, bbox_inches='tight')
+fig.set_constrained_layout_pads(w_pad=4 / 72, h_pad=4 / 72, hspace=0, wspace=0.1)
+plt.savefig(snakemake.output.plot, bbox_inches="tight")
 plt.close()
-

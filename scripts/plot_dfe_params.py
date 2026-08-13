@@ -19,46 +19,68 @@
 
 
 import matplotlib
-import matplotlib.pyplot as plt
-import pandas as pd
 matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.cm as cm
+import pandas as pd
 
-data = pd.read_csv(snakemake.input.data, sep="\t")
-sorter = snakemake.params.sorter
-colors = snakemake.params.colors
-legend = snakemake.params.legend
+df = pd.read_csv(snakemake.input.data, sep="\t")
+populations = snakemake.params.populations
+population_groups = snakemake.params.population_groups
 mu_ylim = snakemake.params.mu_ylim
 sigma_ylim = snakemake.params.sigma_ylim
 
-df = data.sort_values(by="Pop", key=lambda col: col.map(lambda p: sorter.index(p)))
+pop_colors = []
+pop_labels = []
+for pop in populations:
+    label = next((lbl for lbl, grp in population_groups.items() if pop in grp["populations"]), pop)
+    color = next((grp["color"] for grp in population_groups.values() if pop in grp["populations"]), None)
+    pop_labels.append(label)
+    pop_colors.append(color)
 
-fig, axs = plt.subplots(nrows=2, ncols=2, constrained_layout=True, figsize=(7.5, 4), dpi=350)
+n = len(populations)
+auto_colors = [cm.tab20(i / n) for i in range(n)]
+colors = [c if c is not None else auto_colors[i] for i, c in enumerate(pop_colors)]
+
+x = list(range(len(populations)))
+x_tick_labels = list(df["Pop"])
+
+fig, axs = plt.subplots(nrows=2, ncols=2, constrained_layout=True, figsize=(10, 4), dpi=350)
 gridspec = axs[0, 0].get_subplotspec().get_gridspec()
 for a in axs[:, 1]:
     a.remove()
 
+
 def plot_param(ax, param, ylim):
     lb, ub = f"{param}_lb", f"{param}_ub"
-    ax.scatter(sorter, df[param].values, color=colors, zorder=2)
-    ax.scatter(sorter, df[lb].values, marker='_', color='grey')
-    ax.scatter(sorter, df[ub].values, marker='_', color='grey')
-    for i in range(len(sorter)):
-        ax.plot([i, i], [df[param].values[i], df[ub].values[i]], linestyle='dashed', color='grey', zorder=1)
-        ax.plot([i, i], [df[lb].values[i], df[param].values[i]], linestyle='dashed', color='grey', zorder=1)
-    ax.set_ylim(ylim)
-    ax.set_xticks(list(range(len(sorter))), sorter, rotation=90)
+    ax.scatter(x, df[param].values, color=colors, zorder=2)
+    ax.scatter(x, df[lb].values, marker="_", color="grey")
+    ax.scatter(x, df[ub].values, marker="_", color="grey")
+    for i in range(len(populations)):
+        ax.plot([i, i], [df[param].values[i], df[ub].values[i]], linestyle="dashed", color="grey", zorder=1)
+        ax.plot([i, i], [df[lb].values[i], df[param].values[i]], linestyle="dashed", color="grey", zorder=1)
+    if param == "sigma":
+        current = ax.get_ylim()
+        ax.set_ylim(bottom=0, top=current[1])
+    if ylim is not None:
+        ax.set_ylim(ylim[0], ylim[1])
+    ax.set_xticks(x, x_tick_labels, rotation=90)
 
-plot_param(axs[0, 0], "mu",    mu_ylim)
+
+plot_param(axs[0, 0], "mu", mu_ylim)
 plot_param(axs[1, 0], "sigma", sigma_ylim)
-axs[0, 0].set_ylabel('$\\mu$')
-axs[1, 0].set_ylabel('$\\sigma$')
+axs[0, 0].set_ylabel(r"$\mu$")
+axs[1, 0].set_ylabel(r"$\sigma$")
 
 subfig = fig.add_subfigure(gridspec[:, 1])
-handles, labels = subfig.gca().get_legend_handles_labels()
-for label, color in legend:
-    handles.append(axs[0, 1].scatter([0], [0], label=label, color=color))
-subfig.legend(handles=handles, fontsize=8, handlelength=1.5, loc='upper left')
+seen = {}
+for label, color in zip(pop_labels, colors):
+    if label not in seen:
+        seen[label] = color
+handles = [mpatches.Patch(color=color, label=label) for label, color in seen.items()]
+subfig.legend(handles=handles, fontsize=8, handlelength=1.5, loc="upper left")
 
-fig.set_constrained_layout_pads(w_pad=4/72, h_pad=4/72, hspace=0, wspace=0.1)
-plt.savefig(snakemake.output.plot, bbox_inches='tight')
+fig.set_constrained_layout_pads(w_pad=4 / 72, h_pad=4 / 72, hspace=0, wspace=0.1)
+plt.savefig(snakemake.output.plot, bbox_inches="tight")
 plt.close()

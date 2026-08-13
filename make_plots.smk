@@ -17,53 +17,83 @@
 #
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
+DEMOG = "two_epoch"
+DFE = "lognormal"
+
+# plot_group -> list of (species, dataset, ref_genome, population)
+DFE_PLOT_GROUPS = {
+    "1kg_high_hg38": [
+        ("Human", "1kg_high_hg38", "hg38", pop) for pop in [
+            "ACB", "ASW", "BEB", "CDX", "CEU", "CHB", "CHS", "CLM", "ESN",
+            "FIN", "GBR", "GIH", "GWD", "IBS", "ITU", "JPT", "KHV", "LWK",
+            "MSL", "MXL", "PEL", "PJL", "PUR", "STU", "TSI", "YRI",
+        ]
+    ],
+    "1kg_low_hg38": [
+        ("Human", "1kg_low_hg38", "hg38", pop) for pop in [
+            "ACB", "ASW", "BEB", "CDX", "CEU", "CHB", "CHS", "CLM", "ESN",
+            "FIN", "GBR", "GIH", "GWD", "IBS", "ITU", "JPT", "KHV", "LWK",
+            "MSL", "MXL", "PEL", "PJL", "PUR", "STU", "TSI", "YRI",
+        ]
+    ],
+    "1kg_low_hg19": [
+        ("Human", "1kg_low_hg19", "hg19", pop) for pop in [
+            "ACB", "ASW", "BEB", "CDX", "CEU", "CHB", "CHS", "CLM", "ESN",
+            "FIN", "GBR", "GIH", "GWD", "IBS", "ITU", "JPT", "KHV", "LWK",
+            "MSL", "MXL", "PEL", "PJL", "PUR", "STU", "TSI", "YRI",
+        ]
+    ],
+    "greatape": (
+        [("Gorilla", "gorilla", "hg38", pop) for pop in ["GBB", "GBG", "GGG"]]
+        + [("Pan", "pan", "hg38", pop) for pop in ["PPA", "PTE", "PTS", "PTV", "PTT"]]
+        + [("Pongo", "pongo", "hg38", pop) for pop in ["PP", "PA"]]
+    ),
+}
+
+POPULATION_GROUPS = {
+    "AFR":  {"color": "black",   "populations": ["YRI", "ACB", "ASW", "ESN", "GWD", "LWK", "MSL"]},
+    "AMR":  {"color": "green",   "populations": ["CLM", "MXL", "PEL", "PUR"]},
+    "EAS":  {"color": "gold",    "populations": ["CDX", "CHB", "CHS", "JPT", "KHV"]},
+    "EUR":  {"color": "blue",    "populations": ["CEU", "FIN", "GBR", "IBS", "TSI"]},
+    "SAS":  {"color": "brown",   "populations": ["BEB", "GIH", "ITU", "PJL", "STU"]},
+    "Gorilla": {"color": "#9B59B6", "populations": ["GBB", "GBG", "GGG"]},
+    "Pan":     {"color": "#FF7F00", "populations": ["PPA", "PTE", "PTS", "PTT", "PTV"]},
+    "Pongo":   {"color": "#E91E63", "populations": ["PA", "PP"]},
+}
 
 rule all_visualization:
     input:
-        expand("results/plots/circos/{species}/{ppl}/{ppl}_positive_selection_circos_scores.png", species=config["species"], ppl=config["populations"]),
-        expand("results/plots/circos/{species}/{ppl}/{ppl}_balancing_selection_circos_scores.png", species=config["species"], ppl=config["populations"]),
-        expand("results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.svg", species=config["species"])
+        expand(
+            "results/plots/dfe/{group}/{group}.dfe_params.svg",
+            group=DFE_PLOT_GROUPS.keys(),
+        ),
 
 
-rule make_positive_selection_circos_scores:
-    input:
-        ihs_scores="results/positive_selection/selscan/{species}/1pop/{ppl}/ihs_0.05/{ppl}.normalized.ihs.scores",
-        nsl_scores="results/positive_selection/selscan/{species}/1pop/{ppl}/nsl_0.05/{ppl}.normalized.nsl.scores",
-        mtjd_scores="results/positive_selection/scikit-allel/{species}/1pop/{ppl}/moving_tajima_d/100_1/{ppl}.moving_tajima_d.scores",
-        wtjd_scores="results/positive_selection/scikit-allel/{species}/1pop/{ppl}/windowed_tajima_d/100000_1/{ppl}.windowed_tajima_d.scores",
-    output:
-        plot="results/plots/circos/{species}/{ppl}/{ppl}_positive_selection_circos_scores.png"
-    params:
-        population="{ppl}",
-        plot_type="positive_selection"
-    resources:
-        mem_gb=32,
-    script:
-        "scripts/plot_circos_scores.py"
+def get_dfe_bestfit_files(wildcards):
+    return [
+        f"results/dadi/{sp}/{ds}/dfe/{pop}/InferDFE/{pop}.{rg}.{DEMOG}.{DFE}.InferDFE.bestfits"
+        for sp, ds, rg, pop in DFE_PLOT_GROUPS[wildcards.group]
+    ]
 
 
-rule make_balancing_selection_circos_scores:
-    input:
-        b1_scores="results/balancing_selection/betascan/{species}/{ppl}/m_0.15/{ppl}.hg38.m_0.15.b1.scores",
-        mtjd_bal_scores="results/balancing_selection/scikit-allel/{species}/moving_tajima_d/{ppl}/100_1/{ppl}.moving_tajima_d.merged.scores",
-        wtjd_bal_scores="results/balancing_selection/scikit-allel/{species}/windowed_tajima_d/{ppl}/100000_1/{ppl}.windowed_tajima_d.merged.scores",
-    output:
-        plot="results/plots/circos/{species}/{ppl}/{ppl}_balancing_selection_circos_scores.png"
-    params:
-        population="{ppl}",
-        plot_type="balancing_selection"
-    script:
-        "scripts/plot_circos_scores.py"
+def get_dfe_ci_files(wildcards):
+    return [
+        f"results/dadi/{sp}/{ds}/dfe/{pop}/StatDFE/{pop}.{rg}.{DEMOG}.{DFE}.godambe.ci"
+        for sp, ds, rg, pop in DFE_PLOT_GROUPS[wildcards.group]
+    ]
 
 
 rule merge_dfe_confidence_intervals:
     input:
-        bestfit_files=expand("results/dadi/{species}/dfe/{ppl}/InferDFE/{ppl}.hg38.two_epoch.lognormal.InferDFE.bestfits", ppl=config["populations"], allow_missing=True),
-        ci_files=expand("results/dadi/{species}/dfe/{ppl}/StatDFE/{ppl}.hg38.two_epoch.lognormal.godambe.ci", ppl=config["populations"], allow_missing=True),
+        bestfit_files=get_dfe_bestfit_files,
+        ci_files=get_dfe_ci_files,
     output:
-        merged="results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.tsv"
+        merged="results/plots/dfe/{group}/{group}.dfe_params.tsv",
     params:
-        populations=config["populations"],
+        populations=lambda wc: [pop for sp, ds, rg, pop in DFE_PLOT_GROUPS[wc.group]],
+        datasets=lambda wc: [ds for sp, ds, rg, pop in DFE_PLOT_GROUPS[wc.group]],
+    log:
+        "logs/make_plots/merge_dfe_confidence_intervals.{group}.log",
     script:
         "scripts/merge_dfe_ci.py"
 
@@ -72,27 +102,13 @@ rule plot_dfe_confidence_intervals:
     input:
         data=rules.merge_dfe_confidence_intervals.output.merged,
     output:
-        plot="results/plots/dfe/{species}/{species}.two_epoch.lognormal.dfe_params.svg",
+        plot="results/plots/dfe/{group}/{group}.dfe_params.svg",
     params:
-        sorter=[
-            'ACB', 'ASW', 'ESN', 'GWD', 'LWK', 'MSL', 'YRI',
-            'CLM', 'MXL', 'PEL', 'PUR',
-            'CDX', 'CHB', 'CHS', 'JPT', 'KHV',
-            'CEU', 'FIN', 'GBR', 'IBS', 'TSI',
-            'BEB', 'GIH', 'ITU', 'PJL', 'STU',
-        ],
-        colors=(
-            ['black'] * 7 +
-            ['green'] * 4 +
-            ['gold']  * 5 +
-            ['blue']  * 5 +
-            ['brown'] * 5
-        ),
-        legend=[
-            ('AFR', 'black'), ('AMR', 'green'), ('EAS', 'gold'),
-            ('EUR', 'blue'),  ('SAS', 'brown'),
-        ],
-        mu_ylim=[-1, 7],
-        sigma_ylim=[0, 40],
+        populations=lambda wc: [pop for sp, ds, rg, pop in DFE_PLOT_GROUPS[wc.group]],
+        population_groups=POPULATION_GROUPS,
+        mu_ylim=None,
+        sigma_ylim=None,
+    log:
+        "logs/make_plots/plot_dfe_confidence_intervals.{group}.log",
     script:
         "scripts/plot_dfe_params.py"
