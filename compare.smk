@@ -48,7 +48,9 @@ rule all_comparisons:
          for a, b in COMPARISONS for t in P_ADJUSTED_THRESHOLDS],
         [f"results/comparisons/{a}_vs_{b}/balancing_selection/thr_{_thr_label(t)}"
          for a, b in COMPARISONS for t in P_ADJUSTED_THRESHOLDS],
-        "results/comparison/1kg_high_hg38/outlier_gene_overlap/",
+        "results/comparisons/1kg_high_hg38/outlier_gene_overlap/",
+        "results/comparisons/jaccard/",
+
 
 rule compare_positive_selection:
     output:
@@ -57,7 +59,7 @@ rule compare_positive_selection:
         top_n=TOP_N,
         p_adjusted_threshold=lambda wc: _thr_value(wc.threshold),
     log:
-        "logs/comparison/compare_positive_selection.{dataset_a}_vs_{dataset_b}.thr_{threshold}.log",
+        "logs/comparisons/compare_positive_selection.{dataset_a}_vs_{dataset_b}.thr_{threshold}.log",
     script:
         "scripts/compare_positive_selection.py"
 
@@ -69,7 +71,7 @@ rule compare_balancing_selection:
         top_n=TOP_N,
         p_adjusted_threshold=lambda wc: _thr_value(wc.threshold),
     log:
-        "logs/comparison/compare_balancing_selection.{dataset_a}_vs_{dataset_b}.thr_{threshold}.log",
+        "logs/comparisons/compare_balancing_selection.{dataset_a}_vs_{dataset_b}.thr_{threshold}.log",
     script:
         "scripts/compare_balancing_selection.py"
 
@@ -107,6 +109,19 @@ rule compare_outlier_genes:
         ),
         study_dir="resources/candidates",
     output:
-        outdir=directory("results/comparison/1kg_high_hg38/outlier_gene_overlap/"),
+        outdir=directory("results/comparisons/1kg_high_hg38/outlier_gene_overlap/"),
     script:
         "scripts/compare_outlier_genes.py"
+
+
+DATASETS_TO_COMPARE = config.get("datasets_to_compare", [])
+
+rule plot_gene_jaccard_heatmaps:
+    output:
+        outdir=directory("results/comparisons/jaccard/"),
+    params:
+        datasets=DATASETS_TO_COMPARE,
+    log:
+        "logs/comparisons/plot_gene_jaccard_heatmaps.log",
+    script:
+        "scripts/plot_jaccard_heatmaps.py"

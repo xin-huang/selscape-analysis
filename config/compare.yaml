@@ -8,3 +8,12 @@ comparisons:
   - [1kg_high_hg38, gorilla]
   - [1kg_high_hg38, pan]
   - [1kg_high_hg38, pongo]
+
+
+datasets_to_compare:
+  - 1kg_high_hg38
+  - 1kg_low_hg38
+  - 1kg_low_hg19
+  - pan
+  - gorilla
+  - pongo
