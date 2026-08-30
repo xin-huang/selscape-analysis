@@ -69,6 +69,7 @@ def plot_heatmap(matrix, title, output_path):
     fig.tight_layout()
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
+
  
 datasets = snakemake.params.datasets
 assert datasets, "config['datasets_to_compare'] is empty -- nothing to compare."
@@ -107,12 +108,26 @@ for root_dir, parse_path in sources:
     if population_datasets and populations:
         gene_sets = population_gene_sets(Path(root_dir), parse_path)
         for category, tool, method in combos:
+            has_1pop_data = any(
+                (category, tool, method, dataset, population) in gene_sets
+                for dataset in population_datasets
+                for population in populations
+            )
+            stem = f"{category}.{tool}.{method}.population_comparison"
+            if not has_1pop_data:
+                print(
+                    f"skipping {stem} -- no per-population data found "
+                    f"(likely a 2pop/cross-population statistic, e.g. xpehh/xpnsl, "
+                    f"which is keyed by population pair, not by single population)",
+                    file=log_fh,
+                )
+                continue
             table = population_jaccard_table(
                 gene_sets, category, tool, method, populations, population_datasets
             )
-            stem = f"{category}.{tool}.{method}.population_level"
             table.to_csv(outdir / f"{stem}.jaccard_matrix.tsv", sep="\t")
-            title = f"{category.replace('_', ' ')} - {tool} ({method}) - population level"
+            title = f"{category.replace('_', ' ')} - {tool} ({method}) - population comparison"
             plot_heatmap(table, title=title,
                          output_path=outdir / f"{stem}.jaccard_heatmap.svg")
             print(f"wrote {stem}.jaccard_heatmap.svg ({len(table)}x{len(table.columns)})", file=log_fh)
+ 
