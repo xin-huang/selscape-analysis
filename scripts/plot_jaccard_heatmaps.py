@@ -22,7 +22,13 @@ import sys
 from pathlib import Path
  
 sys.path.insert(0, snakemake.scriptdir)
-from jaccard_common import pooled_gene_sets, jaccard_matrix
+from jaccard_common import (
+    pooled_gene_sets,
+    jaccard_matrix,
+    population_gene_sets,
+    population_jaccard_table,
+)
+from compare_common import parse_positive_path, parse_balancing_path
  
 import matplotlib
  
@@ -34,43 +40,23 @@ log_fh = open(snakemake.log[0], "w") if snakemake.log else sys.stdout
 sys.stderr = log_fh
 sys.stdout = log_fh
  
-def parse_positive_path(rel_path):
-    parts = rel_path.split("/")
-    if len(parts) == 7 and parts[0] == "selscan" and parts[3] in ("1pop", "2pop"):
-        method = parts[5].split("_", 1)[0]  # folder is "{method}_{maf}", e.g. "ihs_0.05"
-        return dict(category="positive_selection", tool="selscan", method=method,
-                    dataset=parts[2], unit=parts[4])
-    if len(parts) == 8 and parts[0] == "scikit-allel" and parts[3] in ("1pop", "2pop"):
-        return dict(category="positive_selection", tool="scikit-allel", method=parts[5],
-                    dataset=parts[2], unit=parts[4])
-    return None
- 
- 
-def parse_balancing_path(rel_path):
-    parts = rel_path.split("/")
-    if len(parts) == 7 and parts[0] == "scikit-allel":
-        return dict(category="balancing_selection", tool="scikit-allel", method=parts[3],
-                    dataset=parts[2], unit=parts[4])
-    if len(parts) == 6 and parts[0] == "betascan":
-        return dict(category="balancing_selection", tool="betascan", method="betascan_b1",
-                    dataset=parts[2], unit=parts[3])
-    return None
- 
  
 def plot_heatmap(matrix, title, output_path):
-    fig, ax = plt.subplots(figsize=(0.6 * len(matrix) + 2, 0.6 * len(matrix) + 2), dpi=300)
+    n_rows = len(matrix.index)
+    n_cols = len(matrix.columns)
+    fig, ax = plt.subplots(figsize=(0.6 * n_cols + 3, 0.35 * n_rows + 2), dpi=300)
     cmap = plt.get_cmap("viridis").copy()
     cmap.set_bad("#e8e8e8")
     masked = np.ma.masked_invalid(matrix.values)
-    im = ax.imshow(masked, vmin=0, vmax=1, cmap=cmap)
+    im = ax.imshow(masked, vmin=0, vmax=1, cmap=cmap, aspect="auto")
  
-    ax.set_xticks(range(len(matrix.columns)))
+    ax.set_xticks(range(n_cols))
     ax.set_xticklabels(matrix.columns, rotation=45, ha="right")
-    ax.set_yticks(range(len(matrix.index)))
+    ax.set_yticks(range(n_rows))
     ax.set_yticklabels(matrix.index)
  
-    for i in range(len(matrix.index)):
-        for j in range(len(matrix.columns)):
+    for i in range(n_rows):
+        for j in range(n_cols):
             val = matrix.values[i, j]
             if np.isnan(val):
                 continue
@@ -84,11 +70,11 @@ def plot_heatmap(matrix, title, output_path):
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
  
- 
-# --- main ---
- 
 datasets = snakemake.params.datasets
 assert datasets, "config['datasets_to_compare'] is empty -- nothing to compare."
+ 
+populations = snakemake.params.populations
+population_datasets = snakemake.params.population_datasets
  
 outdir = Path(snakemake.output.outdir)
 outdir.mkdir(parents=True, exist_ok=True)
@@ -117,3 +103,16 @@ for root_dir, parse_path in sources:
         plot_heatmap(matrix, title=title,
                      output_path=outdir / f"{stem}.jaccard_heatmap.svg")
         print(f"wrote {stem}.jaccard_heatmap.svg ({len(matrix)}x{len(matrix)})", file=log_fh)
+ 
+    if population_datasets and populations:
+        gene_sets = population_gene_sets(Path(root_dir), parse_path)
+        for category, tool, method in combos:
+            table = population_jaccard_table(
+                gene_sets, category, tool, method, populations, population_datasets
+            )
+            stem = f"{category}.{tool}.{method}.population_level"
+            table.to_csv(outdir / f"{stem}.jaccard_matrix.tsv", sep="\t")
+            title = f"{category.replace('_', ' ')} - {tool} ({method}) - population level"
+            plot_heatmap(table, title=title,
+                         output_path=outdir / f"{stem}.jaccard_heatmap.svg")
+            print(f"wrote {stem}.jaccard_heatmap.svg ({len(table)}x{len(table.columns)})", file=log_fh)

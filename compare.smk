@@ -49,8 +49,8 @@ rule all_comparisons:
         [f"results/comparisons/{a}_vs_{b}/balancing_selection/thr_{_thr_label(t)}"
          for a, b in COMPARISONS for t in P_ADJUSTED_THRESHOLDS],
         "results/comparisons/1kg_high_hg38/outlier_gene_overlap/",
-        "results/comparisons/jaccard/",
-
+        "results/comparisons/jaccard/plots/",
+        "results/comparisons/jaccard/gene_lists/",	
 
 rule compare_positive_selection:
     output:
@@ -116,12 +116,29 @@ rule compare_outlier_genes:
 
 DATASETS_TO_COMPARE = config.get("datasets_to_compare", [])
 
+
 rule plot_gene_jaccard_heatmaps:
     output:
-        outdir=directory("results/comparisons/jaccard/"),
+        outdir=directory("results/comparisons/jaccard/plots/"),
     params:
         datasets=DATASETS_TO_COMPARE,
+        populations=POPULATIONS,
+        population_datasets=config.get("population_level_datasets", []),
     log:
         "logs/comparisons/plot_gene_jaccard_heatmaps.log",
     script:
         "scripts/plot_jaccard_heatmaps.py"
+
+
+GOWINDA_COMPARISONS = config.get("gowinda_comparisons", [])
+
+
+rule write_jaccard_gene_lists:
+    output:
+        outdir=directory("results/comparisons/jaccard/gene_lists/"),
+    params:
+        comparisons=GOWINDA_COMPARISONS,
+    log:
+        "logs/comparisons/write_jaccard_gene_lists.log",
+    script:
+        "scripts/jaccard_gene_lists.py"
