@@ -61,3 +61,26 @@ def compare_pair(hits, dataset_a, dataset_b, out_dir):
     groups_b = set(map(tuple, sub[sub["dataset"] == dataset_b][keys].drop_duplicates().values))
     for category, tool, method in sorted(groups_a & groups_b):
         write_csv(hits, category, tool, method, dataset_a, dataset_b, out_dir)
+
+
+def parse_positive_path(rel_path):
+    parts = rel_path.split("/")
+    if len(parts) == 7 and parts[0] == "selscan" and parts[3] in ("1pop", "2pop"):
+        method = parts[5].split("_", 1)[0]  # folder is "{method}_{maf}", e.g. "ihs_0.05"
+        return dict(category="positive_selection", tool="selscan", method=method,
+                    dataset=parts[2], unit=parts[4])
+    if len(parts) == 8 and parts[0] == "scikit-allel" and parts[3] in ("1pop", "2pop"):
+        return dict(category="positive_selection", tool="scikit-allel", method=parts[5],
+                    dataset=parts[2], unit=parts[4])
+    return None
+ 
+ 
+def parse_balancing_path(rel_path):
+    parts = rel_path.split("/")
+    if len(parts) == 7 and parts[0] == "scikit-allel":
+        return dict(category="balancing_selection", tool="scikit-allel", method=parts[3],
+                    dataset=parts[2], unit=parts[4])
+    if len(parts) == 6 and parts[0] == "betascan":
+        return dict(category="balancing_selection", tool="betascan", method="betascan_b1",
+                    dataset=parts[2], unit=parts[3])
+    return None
