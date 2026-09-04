@@ -1,4 +1,4 @@
-# Copyright 2025 Xin Huang and Simon Chen
+# Copyright 2026 Xin Huang and Simon Chen
 #
 # GNU General Public License v3.0
 #
@@ -16,6 +16,7 @@
 # along with this program. If not, please see
 #
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
+
 
 configfile: "config/compare.yaml"
 
@@ -42,6 +43,40 @@ POPULATIONS = [
 ]
 
 
+GOWINDA_COMPARISONS = config.get("gowinda_comparisons", [])
+
+
+GOWINDA_COMPARISON_METHODS = {
+    ("positive_selection", "selscan", "ihs"):
+        "results/positive_selection/selscan/{species}/{dataset}/1pop/{ppl}/ihs_0.05/{ppl}.normalized.ihs.maf_0.05.top_0.0005",
+    ("positive_selection", "selscan", "nsl"):
+        "results/positive_selection/selscan/{species}/{dataset}/1pop/{ppl}/nsl_0.05/{ppl}.normalized.nsl.maf_0.05.top_0.0005",
+    ("positive_selection", "scikit-allel", "moving_tajima_d"):
+        "results/positive_selection/scikit-allel/{species}/{dataset}/1pop/{ppl}/moving_tajima_d/100_1/{ppl}.moving_tajima_d.top_0.0005",
+    ("positive_selection", "scikit-allel", "windowed_tajima_d"):
+        "results/positive_selection/scikit-allel/{species}/{dataset}/1pop/{ppl}/windowed_tajima_d/100000_1/{ppl}.windowed_tajima_d.top_0.0005",
+    ("balancing_selection", "betascan", "betascan_b1"):
+        "results/balancing_selection/betascan/{species}/{dataset}/{ppl}/m_0.15/{ppl}.hg38.m_0.15.b1.top_0.0005",
+    ("balancing_selection", "scikit-allel", "moving_tajima_d"):
+        "results/balancing_selection/scikit-allel/{species}/{dataset}/moving_tajima_d/{ppl}/100_1/{ppl}.moving_tajima_d.top_0.0005",
+    ("balancing_selection", "scikit-allel", "windowed_tajima_d"):
+        "results/balancing_selection/scikit-allel/{species}/{dataset}/windowed_tajima_d/{ppl}/100000_1/{ppl}.windowed_tajima_d.top_0.0005",
+}
+
+DATASET_SPECIES = {
+    "1kg_high_hg38": "Human",
+    "pan": "Pan",
+    "gorilla": "Gorilla",
+    "pongo": "Pongo",
+}
+
+DATASET_POPULATIONS = {
+    "1kg_high_hg38": POPULATIONS,
+    "pan": ["PPA", "PTE", "PTS", "PTV", "PTT"],
+    "gorilla": ["GBB", "GBG", "GGG"],
+    "pongo": ["PP", "PA"],
+}
+
 rule all_comparisons:
     input:
         [f"results/comparisons/{a}_vs_{b}/positive_selection/thr_{_thr_label(t)}"
@@ -51,6 +86,11 @@ rule all_comparisons:
         "results/comparisons/1kg_high_hg38/outlier_gene_overlap/",
         "results/comparisons/jaccard/plots/",
         "results/comparisons/jaccard/gene_lists/",	
+        [f"results/comparisons/jaccard/gowinda/{c}.{t}.{m}.{a}_vs_{b}.{s}.gowinda.enrichment.png"
+         for c, t, m in GOWINDA_COMPARISON_METHODS
+         for a, b in GOWINDA_COMPARISONS
+         for s in ["overlap", f"unique_{a}", f"unique_{b}"]],
+
 
 rule compare_positive_selection:
     output:
@@ -130,9 +170,6 @@ rule plot_gene_jaccard_heatmaps:
         "scripts/plot_jaccard_heatmaps.py"
 
 
-GOWINDA_COMPARISONS = config.get("gowinda_comparisons", [])
-
-
 rule write_jaccard_gene_lists:
     output:
         outdir=directory("results/comparisons/jaccard/gene_lists/"),
@@ -142,3 +179,109 @@ rule write_jaccard_gene_lists:
         "logs/comparisons/write_jaccard_gene_lists.log",
     script:
         "scripts/jaccard_gene_lists.py"
+
+
+wildcard_constraints:
+    category="positive_selection|balancing_selection",
+    tool="selscan|scikit-allel|betascan",
+    method="[A-Za-z0-9_]+",
+    dataset_a="[A-Za-z0-9_]+",
+    dataset_b="[A-Za-z0-9_]+",
+    subset="overlap|unique_[A-Za-z0-9_]+",
+ 
+ 
+def get_gowinda_comparison_files(wildcards, suffix):
+    if wildcards.subset == "overlap":
+        datasets = [wildcards.dataset_a, wildcards.dataset_b]
+    else:
+        datasets = [wildcards.subset.removeprefix("unique_")]
+ 
+    prefix = GOWINDA_COMPARISON_METHODS[(wildcards.category, wildcards.tool, wildcards.method)]
+    return [
+        prefix.format(species=DATASET_SPECIES[dataset], dataset=dataset, ppl=ppl) + suffix
+        for dataset in datasets
+        for ppl in DATASET_POPULATIONS[dataset]
+    ]
+ 
+ 
+rule extract_gowinda_comparison_snps:
+    input:
+        gene_lists=rules.write_jaccard_gene_lists.output.outdir,
+        outliers=lambda wc: get_gowinda_comparison_files(wc, ".annotated.outliers"),
+        total=lambda wc: get_gowinda_comparison_files(wc, ".total.snps.tsv"),
+    output:
+        genes=temp("results/comparisons/jaccard/gowinda/{category}.{tool}.{method}.{dataset_a}_vs_{dataset_b}.{subset}.snp.keys"),
+        candidate_snps="results/comparisons/jaccard/gowinda/{category}.{tool}.{method}.{dataset_a}_vs_{dataset_b}.{subset}.candidate.snps.tsv",
+        total_snps="results/comparisons/jaccard/gowinda/{category}.{tool}.{method}.{dataset_a}_vs_{dataset_b}.{subset}.total.snps.tsv",
+    params:
+        gene_list="{category}.{tool}.{method}.{dataset_a}_vs_{dataset_b}.{subset}.genes",
+    resources:
+        mem_mb=16000,
+    log:
+        "logs/comparisons/extract_gowinda_comparison_snps.{category}.{tool}.{method}.{dataset_a}_vs_{dataset_b}.{subset}.log",
+    shell:
+        r"""
+        ( awk 'NR==FNR {{ if (FNR>1) genes[$1]; next }}
+               FNR>1 && ($7 in genes) {{ print $1":"$2 }}' \
+            {input.gene_lists}/{params.gene_list} {input.outliers} | sort -u > {output.genes} ) 2> {log}
+ 
+        ( cat {input.total} | sort -u > {output.total_snps} ) 2>> {log}
+ 
+        ( awk 'NR==FNR {{ keys[$1]; next }}
+               {{ chrom=$1; sub(/^chr/, "", chrom); if ((chrom":"$2) in keys) print $1"\t"$2 }}' \
+            {output.genes} {output.total_snps} > {output.candidate_snps} ) 2>> {log}
+        """
+ 
+ 
+rule enrichment_gowinda_comparisons:
+    input:
+        gowinda="resources/tools/gowinda/Gowinda-1.12.jar",
+        go2gene="results/annotated_data/Human/1kg_high_hg38.gowinda.go2gene",
+        gtf="results/annotated_data/Human/1kg_high_hg38.gowinda.gtf",
+        candidate_snps=rules.extract_gowinda_comparison_snps.output.candidate_snps,
+        total_snps=rules.extract_gowinda_comparison_snps.output.total_snps,
+    output:
+        enrichment="results/comparisons/jaccard/gowinda/{category}.{tool}.{method}.{dataset_a}_vs_{dataset_b}.{subset}.gowinda.enrichment.tsv",
+    resources:
+        mem_mb=32000,
+        cpus=8,
+    log:
+        "logs/comparisons/enrichment_gowinda_comparisons.{category}.{tool}.{method}.{dataset_a}_vs_{dataset_b}.{subset}.log",
+    shell:
+        r"""
+        touch {output.enrichment} 2> {log}
+ 
+        if [ -s {input.candidate_snps} ]; then
+            java -Xmx{resources.mem_mb}m -jar {input.gowinda} \
+                --snp-file {input.total_snps} \
+                --candidate-snp-file {input.candidate_snps} \
+                --gene-set-file {input.go2gene} \
+                --annotation-file {input.gtf} \
+                --simulations 1000000 \
+                --min-significance 1 \
+                --gene-definition gene \
+                --threads {resources.cpus} \
+                --output-file {output.enrichment} \
+                --mode gene \
+                --min-genes 1 >> {log} 2>&1 || true
+        else
+            echo "no candidate SNPs for {wildcards.subset} -- skipping Gowinda" >> {log}
+        fi
+ 
+        sed -i '1iGO_ID\tavg_genes_sim\tgenes_found\tp_value\tp_adjusted\tgenes_uniq\tgenes_max\tgenes_total\tdescription\tgene_list' {output.enrichment} 2>> {log}
+        """
+ 
+ 
+rule plot_gowinda_enrichment_comparisons:
+    input:
+        enrichment=rules.enrichment_gowinda_comparisons.output.enrichment,
+    output:
+        plot="results/comparisons/jaccard/gowinda/{category}.{tool}.{method}.{dataset_a}_vs_{dataset_b}.{subset}.gowinda.enrichment.png",
+    params:
+        title="{dataset_a} vs {dataset_b}: {subset} genes ({method}, {category})",
+    resources:
+        mem_mb=8000,
+    log:
+        "logs/comparisons/plot_gowinda_enrichment_comparisons.{category}.{tool}.{method}.{dataset_a}_vs_{dataset_b}.{subset}.log",
+    script:
+        "workflow/scripts/visualization/plot_gowinda_enrichment.py"
