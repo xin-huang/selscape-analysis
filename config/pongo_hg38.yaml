@@ -1,0 +1,56 @@
+species: "Pongo"
+tax_id: 9606
+
+dataset: "pongo"
+ref_genome: "hg38"
+anc_alleles:
+  path: "resources/data/greatape/rhemac10_anc_alleles"
+  prefix: "hg38"
+
+genome_annotation: "resources/data/Human/annotation/Human.hg38.gtf.gz"
+gene2go: "resources/data/Human/annotation/gene2go.gz"
+
+hwe_pvalue: 0.001
+
+rmsk: "resources/data/Human/repeats/hg38.rmsk.autosomes.bed"
+seg_dup: "resources/data/Human/repeats/hg38.seg.dups.autosomes.bed"
+sim_rep: "resources/data/Human/repeats/hg38.simple.repeats.autosomes.bed"
+
+ploidy: 2
+
+populations:
+  - PP
+  - PA
+  
+data_folder: "resources/data/greatape/Pongo"
+vcf_prefix: ""
+vcf_suffix: ".filteranno.vcf.gz"
+
+metadata: "resources/data/greatape/metadata.txt"
+
+chromosomes:
+  - chr1
+  - chr2
+  - chr3
+  - chr4
+  - chr5
+  - chr6
+  - chr7
+  - chr8
+  - chr9
+  - chr10
+  - chr11
+  - chr12
+  - chr13
+  - chr14
+  - chr15
+  - chr16
+  - chr17
+  - chr18
+  - chr19
+  - chr20
+  - chr21
+  - chr22
+
+chr_bed: "resources/data/Human/genome/hg38.chrom.sizes.bed"
+cytoband: "resources/data/Human/genome/hg38.cytoBand.txt.gz"
