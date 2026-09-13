@@ -108,20 +108,20 @@ def overlap_and_differences(a, b):
  
  
 def population_jaccard_table(gene_sets, category, tool, method, populations, datasets):
-    """Table with one row per population and one column per dataset pair
+    """Table with one row per dataset pair and one column per population
     (every pair among `datasets`) for one (category, tool, method). Each
     cell is the Jaccard similarity of that population's own gene set
-    between the two datasets in that column -- i.e. how reproducible that
+    between the two datasets in that row -- i.e. how reproducible that
     population's candidate genes are across dataset versions.
     """
     pairs = list(combinations(datasets, 2))
-    columns = [f"{dataset_a} vs {dataset_b}" for dataset_a, dataset_b in pairs]
-    table = pd.DataFrame(float("nan"), index=populations, columns=columns)
- 
-    for population in populations:
-        for (dataset_a, dataset_b), column in zip(pairs, columns):
+    rows = [f"{dataset_a} vs {dataset_b}" for dataset_a, dataset_b in pairs]
+    table = pd.DataFrame(float("nan"), index=rows, columns=populations)
+
+    for (dataset_a, dataset_b), row in zip(pairs, rows):
+        for population in populations:
             genes_a = gene_sets.get((category, tool, method, dataset_a, population), set())
             genes_b = gene_sets.get((category, tool, method, dataset_b, population), set())
-            table.loc[population, column] = jaccard(genes_a, genes_b)
- 
+            table.loc[row, population] = jaccard(genes_a, genes_b)
+
     return table
