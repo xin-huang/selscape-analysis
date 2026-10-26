@@ -17,91 +17,70 @@
 #
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
-import matplotlib.pyplot as plt
-import pandas as pd
+
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.cm as cm
+import pandas as pd
 
-# Read merged DFE data
-data = pd.read_csv(snakemake.input.data, sep="\t")
+df = pd.read_csv(snakemake.input.data, sep="\t")
+populations = snakemake.params.populations
+population_groups = snakemake.params.population_groups
+mu_ylim = snakemake.params.mu_ylim
+sigma_ylim = snakemake.params.sigma_ylim
 
-# Population groups
-population_list = {
-    'AFR': ['ACB', 'ASW', 'ESN', 'GWD', 'LWK', 'MSL', 'YRI'],
-    'AMR': ['CLM', 'MXL', 'PEL', 'PUR'],
-    'EAS': ['CDX', 'CHB', 'CHS', 'JPT', 'KHV'],
-    'EUR': ['CEU', 'FIN', 'GBR', 'IBS', 'TSI'],
-    'SAS': ['BEB', 'GIH', 'ITU', 'PJL', 'STU'],
-}
+pop_colors = []
+pop_labels = []
+for pop in populations:
+    label = next((lbl for lbl, grp in population_groups.items() if pop in grp["populations"]), pop)
+    color = next((grp["color"] for grp in population_groups.values() if pop in grp["populations"]), None)
+    pop_labels.append(label)
+    pop_colors.append(color)
 
-# Population order for plotting
-sorter = [
-    'ACB', 'ASW', 'ESN', 'GWD', 'LWK', 'MSL', 'YRI',  # AFR
-    'CLM', 'MXL', 'PEL', 'PUR',                        # AMR
-    'CDX', 'CHB', 'CHS', 'JPT', 'KHV',                 # EAS
-    'CEU', 'FIN', 'GBR', 'IBS', 'TSI',                 # EUR
-    'BEB', 'GIH', 'ITU', 'PJL', 'STU',                 # SAS
-]
+n = len(populations)
+auto_colors = [cm.tab20(i / n) for i in range(n)]
+colors = [c if c is not None else auto_colors[i] for i, c in enumerate(pop_colors)]
 
-# Colors by population group
-colors = [
-    'black', 'black', 'black', 'black', 'black', 'black', 'black',  # AFR
-    'green', 'green', 'green', 'green',                              # AMR
-    'gold', 'gold', 'gold', 'gold', 'gold',                          # EAS
-    'blue', 'blue', 'blue', 'blue', 'blue',                          # EUR
-    'brown', 'brown', 'brown', 'brown', 'brown',                     # SAS
-]
+x = list(range(len(populations)))
+x_tick_labels = list(df["Pop"])
 
-# Sort data by population order
-df = data.sort_values(by="Pop", key=lambda column: column.map(lambda e: sorter.index(e)))
-
-# Create figure with 2x2 subplots, but only use left column
-fig, axs = plt.subplots(nrows=2, ncols=2, constrained_layout=True, figsize=(7.5, 4), dpi=350)
+fig, axs = plt.subplots(nrows=2, ncols=2, constrained_layout=True, figsize=(10, 4), dpi=350)
 gridspec = axs[0, 0].get_subplotspec().get_gridspec()
-# Remove right column subplots (will use for legend)
 for a in axs[:, 1]:
     a.remove()
 
-# Plot μ (log mean) - upper plot
-axs[0, 0].scatter(sorter, df['mu'].values, color=colors, zorder=2)
-axs[0, 0].scatter(sorter, df['mu_lb'].values, marker='_', color='grey')
-axs[0, 0].scatter(sorter, df['mu_ub'].values, marker='_', color='grey')
-# Draw confidence interval lines
-for i in range(len(sorter)):
-    axs[0, 0].plot([i, i], [df['mu'].values[i], df['mu_ub'].values[i]],
-                   linestyle='dashed', color='grey', zorder=1)
-    axs[0, 0].plot([i, i], [df['mu_lb'].values[i], df['mu'].values[i]],
-                   linestyle='dashed', color='grey', zorder=1)
-axs[0, 0].set_ylim([-1, 7])
-axs[0, 0].set_ylabel('$\mu$')
-axs[0, 0].set_xticks(list(range(len(sorter))), sorter, rotation=90)
 
-# Plot σ (log std dev) - lower plot
-axs[1, 0].scatter(sorter, df['sigma'].values, color=colors, zorder=2)
-axs[1, 0].scatter(sorter, df['sigma_lb'].values, marker='_', color='grey')
-axs[1, 0].scatter(sorter, df['sigma_ub'].values, marker='_', color='grey')
-# Draw confidence interval lines
-for i in range(len(sorter)):
-    axs[1, 0].plot([i, i], [df['sigma'].values[i], df['sigma_ub'].values[i]],
-                   linestyle='dashed', color='grey', zorder=1)
-    axs[1, 0].plot([i, i], [df['sigma_lb'].values[i], df['sigma'].values[i]],
-                   linestyle='dashed', color='grey', zorder=1)
-axs[1, 0].set_xticks(list(range(len(sorter))), sorter, rotation=90)
-axs[1, 0].set_ylim([0, 40])
-axs[1, 0].set_ylabel('$\sigma$')
+def plot_param(ax, param, ylim):
+    lb, ub = f"{param}_lb", f"{param}_ub"
+    ax.scatter(x, df[param].values, color=colors, zorder=2)
+    ax.scatter(x, df[lb].values, marker="_", color="grey")
+    ax.scatter(x, df[ub].values, marker="_", color="grey")
+    for i in range(len(populations)):
+        ax.plot([i, i], [df[param].values[i], df[ub].values[i]], linestyle="dashed", color="grey", zorder=1)
+        ax.plot([i, i], [df[lb].values[i], df[param].values[i]], linestyle="dashed", color="grey", zorder=1)
+    if param == "sigma":
+        current = ax.get_ylim()
+        ax.set_ylim(bottom=0, top=current[1])
+    if ylim is not None:
+        ax.set_ylim(ylim[0], ylim[1])
+    ax.set_xticks(x, x_tick_labels, rotation=90)
 
-# Add legend in right column
+
+plot_param(axs[0, 0], "mu", mu_ylim)
+plot_param(axs[1, 0], "sigma", sigma_ylim)
+axs[0, 0].set_ylabel(r"$\mu$")
+axs[1, 0].set_ylabel(r"$\sigma$")
+
 subfig = fig.add_subfigure(gridspec[:, 1])
-handles, labels = subfig.gca().get_legend_handles_labels()
-afr = axs[0, 1].scatter([0], [0], label='AFR', color='black')
-amr = axs[0, 1].scatter([0], [0], label='AMR', color='green')
-eas = axs[0, 1].scatter([0], [0], label='EAS', color='gold')
-eur = axs[0, 1].scatter([0], [0], label='EUR', color='blue')
-sas = axs[0, 1].scatter([0], [0], label='SAS', color='brown')
-handles.extend([afr, amr, eas, eur, sas])
-subfig.legend(handles=handles, fontsize=8, handlelength=1.5, loc='upper left')
+seen = {}
+for label, color in zip(pop_labels, colors):
+    if label not in seen:
+        seen[label] = color
+handles = [mpatches.Patch(color=color, label=label) for label, color in seen.items()]
+subfig.legend(handles=handles, fontsize=8, handlelength=1.5, loc="upper left")
 
-# Save figure
 fig.set_constrained_layout_pads(w_pad=4 / 72, h_pad=4 / 72, hspace=0, wspace=0.1)
-plt.savefig(snakemake.output.plot, bbox_inches='tight')
+plt.savefig(snakemake.output.plot, bbox_inches="tight")
 plt.close()
