@@ -1,4 +1,4 @@
-# Copyright 2025 Xin Huang and Simon Chen
+# Copyright 2026 Xin Huang and Simon Chen
 #
 # GNU General Public License v3.0
 #
@@ -74,6 +74,8 @@ POPULATIONS = [
 
 DATASET_SPECIES = {
     "1kg_high_hg38": "Human",
+    "1kg_low_hg38": "Human",
+    "1kg_low_hg19": "Human",
     "pan": "Pan",
     "gorilla": "Gorilla",
     "pongo": "Pongo",
@@ -82,9 +84,20 @@ DATASET_SPECIES = {
 # same order as in the dataset configs, otherwise the pair names do not match
 DATASET_POPULATIONS = {
     "1kg_high_hg38": POPULATIONS,
+    "1kg_low_hg38": POPULATIONS,
+    "1kg_low_hg19": POPULATIONS,
     "pan": ["PPA", "PTE", "PTS", "PTV", "PTT"],
     "gorilla": ["GBB", "GBG", "GGG"],
     "pongo": ["PP", "PA"],
+}
+
+DATASET_REF_GENOME = {
+    "1kg_high_hg38": "hg38",
+    "1kg_low_hg38": "hg38",
+    "1kg_low_hg19": "hg19",
+    "pan": "hg38",
+    "gorilla": "hg38",
+    "pongo": "hg38",
 }
 
 XP_METHODS = {
@@ -127,7 +140,7 @@ WP_METHODS = {
         title="Windowed Tajima's D, positive selection (Window size=100000 bp, Step size=100000 bp, Top 0.05%)",
     ),
     "b1": dict(
-        path="results/balancing_selection/betascan/{species}/{dataset}/{ppl}/m_0.15/{ppl}.hg38.m_0.15.b1.top_0.0005.outlier.genes",
+        path="results/balancing_selection/betascan/{species}/{dataset}/{ppl}/m_0.15/{ppl}.{ref_genome}.m_0.15.b1.top_0.0005.outlier.genes",
         title="B1 (Core Freq=0.15, Top 0.05%)",
     ),
     "moving_tajima_d_balancing": dict(
@@ -253,7 +266,7 @@ def get_xp_focal_files(wildcards):
 
 def wp_path(dataset, wp_method, ppl):
     return WP_METHODS[wp_method]["path"].format(
-        species=DATASET_SPECIES[dataset], dataset=dataset, ppl=ppl
+        species=DATASET_SPECIES[dataset], dataset=dataset, ppl=ppl, ref_genome=DATASET_REF_GENOME[dataset]
     )
 
 
@@ -274,8 +287,7 @@ def get_wp_files(wildcards):
 
 
 def wp_enrichment_path(dataset, wp_method, ppl):
-    path = WP_METHODS[wp_method]["path"].replace(".outlier.genes", ".gowinda.enrichment.tsv")
-    return path.format(species=DATASET_SPECIES[dataset], dataset=dataset, ppl=ppl)
+    return wp_path(dataset, wp_method, ppl).replace(".outlier.genes", ".gowinda.enrichment.tsv")
 
 
 def get_wp_go_populations(wildcards):

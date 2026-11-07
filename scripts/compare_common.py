@@ -63,7 +63,12 @@ def compare_pair(hits, dataset_a, dataset_b, out_dir):
         write_csv(hits, category, tool, method, dataset_a, dataset_b, out_dir)
 
 
+TOP = ".top_0.0005."
+
+
 def parse_positive_path(rel_path):
+    if TOP not in rel_path:
+        return None
     parts = rel_path.split("/")
     if len(parts) == 7 and parts[0] == "selscan" and parts[3] in ("1pop", "2pop"):
         method = parts[5].split("_", 1)[0]  # folder is "{method}_{maf}", e.g. "ihs_0.05"
@@ -76,6 +81,8 @@ def parse_positive_path(rel_path):
  
  
 def parse_balancing_path(rel_path):
+    if TOP not in rel_path:
+        return None
     parts = rel_path.split("/")
     if len(parts) == 7 and parts[0] == "scikit-allel":
         return dict(category="balancing_selection", tool="scikit-allel", method=parts[3],
