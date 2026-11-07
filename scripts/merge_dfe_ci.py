@@ -17,25 +17,22 @@
 #
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
+
 import pandas as pd
 import re
 
-# get input files from Snakemake
 populations = snakemake.params.populations
+datasets = snakemake.params.datasets
 bestfit_files = snakemake.input.bestfit_files
 ci_files = snakemake.input.ci_files
 output_file = snakemake.output.merged
 
-# parse .godambe.ci file to extract lower and upper bounds
-# uses last set of bounds (most refined)
+
 def parse_ci_file(ci_file):
     with open(ci_file, 'r') as f:
         lines = f.readlines()
-    
     lower_bounds = None
     upper_bounds = None
-    
-    # read from b ottom up to get last bounds
     for line in reversed(lines):
         if line.startswith("Lower bounds"):
             match = re.search(r'\[(.*?)\]', line)
@@ -45,42 +42,40 @@ def parse_ci_file(ci_file):
             match = re.search(r'\[(.*?)\]', line)
             if match:
                 upper_bounds = [float(x) for x in match.group(1).split()]
-        # stop once we have both bounds
         if lower_bounds and upper_bounds:
             break
-    
     return lower_bounds, upper_bounds
+
 
 def parse_bestfit_file(bestfit_file):
     with open(bestfit_file, 'r') as f:
         for line in f:
             if line.startswith('# Converged results'):
-                # Skip header line with column names
                 next(f)
-                # Read first converged result (best fit)
-                data_line = next(f)
-                values = data_line.strip().split()
-                # Return: log_mu (param1), log_sigma (param2), misid
-                return float(values[1]), float(values[2]), float(values[3])
+                values = next(f).strip().split()
+                log_mu = float(values[1])
+                log_sigma = float(values[2])
+                misid = float(values[3]) if len(values) > 3 else None
+                return log_mu, log_sigma, misid
     return None, None, None
 
-data = []
 
-for pop, bestfit_file, ci_file in zip(populations, bestfit_files, ci_files):
+data = []
+for pop, dataset, bestfit_file, ci_file in zip(populations, datasets, bestfit_files, ci_files):
     log_mu, log_sigma, misid = parse_bestfit_file(bestfit_file)
     lower_bounds, upper_bounds = parse_ci_file(ci_file)
-    # store all parameters: point estimates + lower/upper bounds    
     data.append({
         'Pop': pop,
-        'mu': log_mu,              # μ (log mean of DFE)
-        'mu_lb': lower_bounds[0],  # μ lower bound
-        'mu_ub': upper_bounds[0],  # μ upper bound
-        'sigma': log_sigma,        # σ (log std dev of DFE)
-        'sigma_lb': lower_bounds[1],  # σ lower bound
-        'sigma_ub': upper_bounds[1],  # σ upper bound
-        'misid': misid,            # Misidentification rate
-        'misid_lb': lower_bounds[2],  # Misid lower bound
-        'misid_ub': upper_bounds[2]   # Misid upper bound
+        'Dataset': dataset,
+        'mu': log_mu,
+        'mu_lb': lower_bounds[0],
+        'mu_ub': upper_bounds[0],
+        'sigma': log_sigma,
+        'sigma_lb': lower_bounds[1],
+        'sigma_ub': upper_bounds[1],
+        'misid': misid,
+        'misid_lb': lower_bounds[2] if len(lower_bounds) > 2 else None,
+        'misid_ub': upper_bounds[2] if len(upper_bounds) > 2 else None,
     })
 
 df = pd.DataFrame(data)
